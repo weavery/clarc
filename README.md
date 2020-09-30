@@ -12,7 +12,7 @@ occasion.*
 
 ## Acknowledgments
 
-We thank the [Stacks Foundation] for sponsoring the development of Clarc.
+We thank the [Stacks Foundation] for [sponsoring] the development of Clarc.
 
 We thank [Blockstack] and [Algorand] for having developed the Clarity language,
 an important evolution for the future of smart contracts.
@@ -21,4 +21,5 @@ an important evolution for the future of smart contracts.
 [Blockstack]:        https://blockstack.org
 [Clarity]:           https://clarity-lang.org
 [Ethereum]:          https://ethereum.org
+[sponsoring]:        https://github.com/stacksgov/Stacks-Grants/issues/16
 [Stacks Foundation]: https://stacks.org
