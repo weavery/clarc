@@ -1,0 +1,3 @@
+(executable
+ (name clarc)
+ (libraries clarity-lang cmdliner ISO8601 ocolor unix))
