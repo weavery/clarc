@@ -1,0 +1,15 @@
+(library
+ (name EVM)
+ (modules EVM)
+ (wrapped false)
+ (preprocess (action (run %{bin:cppo} -V OCAML:%{ocaml_version} %{input-file})))
+ (preprocessor_deps
+  decode.ml
+  decode.mli
+  encode.ml
+  encode.mli
+  metrics.ml
+  metrics.mli
+  opcodes.ml
+  print.ml
+  print.mli))
