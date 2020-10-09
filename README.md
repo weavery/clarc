@@ -10,6 +10,8 @@
 project. Assume nothing works, and you may be pleasantly surprised on
 occasion.*
 
+![Manpage](https://github.com/weavery/clarc/blob/master/etc/manpage.jpg)
+
 ## Acknowledgments
 
 We thank the [Stacks Foundation] for [sponsoring] the development of Clarc.
