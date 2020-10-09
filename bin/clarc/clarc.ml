@@ -50,8 +50,16 @@ let clarc verbose paths output target _optimize =
         | Some target -> process_program program target
         | None -> printf "@[<v>%a@]@?" Clarity.print_program program
       end
-    | Bytecode -> failwith "not implemented yet"  (* TODO *)
-    | Opcode -> failwith "not implemented yet"  (* TODO *)
+    | Bytecode ->
+      let (deployer, program) = Clar2EVM.compile_contract program in
+      let program = deployer @ program in
+      let printf = Format.fprintf output_formatter in
+      printf "@[<h>%a@]@." EVM.print_program_as_bytecode program
+    | Opcode ->
+      let (deployer, program) = Clar2EVM.compile_contract program in
+      let program = deployer @ program in
+      let printf = Format.fprintf output_formatter in
+      printf "@[<hov>%a@]@." EVM.print_program_as_opcode program
   in
 
   let process_file path =

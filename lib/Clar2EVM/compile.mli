@@ -6,6 +6,4 @@ val compile_program : Clarity.program -> EVM.program
 
 val compile_definition : Clarity.definition -> EVM.block
 
-(* val compile_expression : Clarity.expression -> expression *)
-
-(* val compile_type : Clarity.type' -> type' *)
+val compile_expression : Clarity.expression -> EVM.opcode list

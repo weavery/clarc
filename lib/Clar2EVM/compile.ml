@@ -1,16 +1,18 @@
 (* This is free and unencumbered software released into the public domain. *)
 
 let rec compile_contract program =
-  let is_datavar = function Clarity.DataVar _ -> true | _ -> false in
-  let (head, body) = List.partition is_datavar program in
-  (compile_deployer head, compile_program body)
+  let is_var = function Clarity.DataVar _ -> true | _ -> false in
+  let (vars, program) = List.partition is_var program in
+  (compile_deployer vars, compile_program program)
 
-and compile_deployer program =
-  List.map compile_datavar program  (* TODO: standard prelude *)
+and compile_deployer vars =
+  let loader = [] in
+  let vars = List.concat (List.mapi compile_data_var vars) in
+  [(0, loader @ vars); (1, [])]
 
-and compile_datavar = function
+and compile_data_var index = function
   | Clarity.DataVar (_name, _type', value) ->
-    (0, [compile_expression value; EVM.from_int 0; EVM.SSTORE])
+    compile_expression value @ [EVM.from_int index; EVM.SSTORE]
   | _ -> failwith "unreachable"
 
 and compile_program program =
@@ -30,5 +32,5 @@ and compile_expression = function
   | _ -> failwith "not implemented yet"  (* TODO *)
 
 and compile_literal = function
-  | IntLiteral z -> EVM.from_big_int z
+  | IntLiteral z -> [EVM.from_big_int z]
   | _ -> failwith "not implemented yet"  (* TODO *)

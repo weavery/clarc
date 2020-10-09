@@ -1,3 +1,3 @@
 (executable
  (name clarc)
- (libraries EVM clarity-lang cmdliner ISO8601 ocolor unix))
+ (libraries Clar2EVM EVM clarity-lang cmdliner ISO8601 ocolor unix))
