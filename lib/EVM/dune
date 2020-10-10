@@ -4,6 +4,8 @@
  (wrapped false)
  (preprocess (action (run %{bin:cppo} -V OCAML:%{ocaml_version} %{input-file})))
  (preprocessor_deps
+  construct.ml
+  construct.mli
   decode.ml
   decode.mli
   encode.ml

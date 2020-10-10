@@ -1,6 +1,8 @@
 (* This is free and unencumbered software released into the public domain. *)
 
-type program = block list
+type contract = program * program
+
+and program = block list
 
 and block = int * opcode list
 
