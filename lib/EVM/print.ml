@@ -4,16 +4,18 @@ let rec print_program_as_bytecode ppf program =
   List.iter (print_block_as_bytecode ppf) program
 
 and print_program_as_opcode ppf program =
-  List.iter (print_block_as_opcode ppf) program
+  List.iteri (print_block_as_opcode ppf) program
 
 and print_block_as_bytecode ppf block =
   let bytecode = encode_block block in
   let print_byte b = Format.fprintf ppf "%02x@," @@ Char.code b in
   String.iter print_byte bytecode
 
-and print_block_as_opcode ppf = function
+and print_block_as_opcode ppf index = function
   | (_, []) -> ()
-  | (_, block_body) -> print_opcodes ppf block_body
+  | (_, block_body) ->
+    if index > 0 then Format.pp_print_space ppf ();
+    print_opcodes ppf block_body
 
 and print_opcodes ppf ops =
   let open Format in

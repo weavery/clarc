@@ -3,12 +3,23 @@
 let rec compile_contract program =
   let is_var = function Clarity.DataVar _ -> true | _ -> false in
   let (vars, program) = List.partition is_var program in
-  (compile_deployer vars, compile_program program)
+  let payload = compile_program program in
+  let deployer = compile_deployer vars payload in
+  (deployer, payload)
 
-and compile_deployer vars =
-  let loader = [] in
-  let vars = List.concat (List.mapi compile_data_var vars) in
-  [(0, loader @ vars); (1, [])]
+and compile_deployer vars payload =
+  let inits = List.concat (List.mapi compile_data_var vars) in
+  let loader_length = 11 in
+  let loader = [
+    EVM.from_int (EVM.program_size payload);
+    EVM.DUP 1;
+    EVM.from_int (loader_length + (EVM.opcodes_size inits));
+    EVM.from_int 0;
+    EVM.CODECOPY;
+    EVM.from_int 0;
+    EVM.RETURN;
+  ] in
+  [(0, inits @ loader)]
 
 and compile_data_var index = function
   | Clarity.DataVar (_name, _type', value) ->
@@ -25,7 +36,7 @@ and compile_definition = function
   | _ -> failwith "not implemented yet"  (* TODO *)
 
 and compile_function (_name, _params, _body) =
-  (0, [])  (* TODO *)
+  (0, [EVM.STOP])  (* TODO *)
 
 and compile_expression = function
   | Literal lit -> compile_literal lit

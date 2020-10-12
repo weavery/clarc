@@ -4,10 +4,6 @@ val print_program_as_bytecode : Format.formatter -> program -> unit
 
 val print_program_as_opcode : Format.formatter -> program -> unit
 
-val print_block_as_bytecode : Format.formatter -> block -> unit
-
-val print_block_as_opcode : Format.formatter -> block -> unit
-
 val print_opcodes : Format.formatter -> opcode list -> unit
 
 val print_opcode : Format.formatter -> opcode -> unit
