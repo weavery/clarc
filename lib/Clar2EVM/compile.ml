@@ -5,7 +5,7 @@ let rec compile_contract program =
   let (vars, program) = List.partition is_var program in
   let dispatcher = compile_dispatcher program in
   let program = compile_program program in
-  let payload = dispatcher @ program in
+  let payload = link_program (dispatcher @ program) in
   let deployer = compile_deployer vars payload in
   (deployer, payload)
 
@@ -49,22 +49,22 @@ and compile_dispatcher_test index = function
       EVM.DUP 1;
       EVM.PUSH (4, (function_hash name));
       EVM.EQ;
-      EVM.from_int index;  (* FIXME *)
+      EVM.from_int (1 + index);
       EVM.JUMPI;
     ]
   | _ -> failwith "not implemented yet"  (* TODO *)
 
 and compile_program program =
-  List.map compile_definition program
+  List.mapi compile_definition program
 
-and compile_definition = function
+and compile_definition index = function
   | Clarity.DataVar _ -> failwith "unreachable"
-  | PublicFunction func -> compile_function func
-  | PublicReadOnlyFunction func -> compile_function func
+  | PublicFunction func -> compile_function index func
+  | PublicReadOnlyFunction func -> compile_function index func
   | _ -> failwith "not implemented yet"  (* TODO *)
 
-and compile_function (_name, _params, _body) =
-  (0, [EVM.JUMPDEST; EVM.STOP])  (* TODO *)
+and compile_function index (_name, _params, _body) =
+  (1 + index, [EVM.JUMPDEST; EVM.POP; EVM.from_int (1 + index); EVM.STOP])  (* TODO *)
 
 and compile_expression = function
   | Literal lit -> compile_literal lit
@@ -73,6 +73,31 @@ and compile_expression = function
 and compile_literal = function
   | IntLiteral z -> [EVM.from_big_int z]
   | _ -> failwith "not implemented yet"  (* TODO *)
+
+and link_offsets program =
+  let rec loop pc = function
+    | [] -> []
+    | (_, body) :: rest ->
+      let next_pc = pc + EVM.opcodes_size body in
+      pc :: loop next_pc rest
+  in
+  loop 0 program
+
+and link_program program =
+  let block_offsets = link_offsets program in
+  let rec link_block = function
+    | [] -> []
+    | EVM.PUSH (1, block_id) :: EVM.JUMPI :: rest ->
+      let block_id = String.get block_id 0 |> Char.code in
+      let block_pc = List.nth block_offsets block_id in
+      EVM.from_int block_pc :: EVM.JUMPI :: link_block rest
+    | op :: rest -> op :: link_block rest
+  in
+  let rec link_blocks = function
+    | [] -> []
+    | (id, body) :: rest -> (id, link_block body) :: link_blocks rest
+  in
+  link_blocks program
 
 and function_hash = function
   | "get-counter" -> "\x8a\xda\x06\x6e"
