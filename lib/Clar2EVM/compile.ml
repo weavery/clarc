@@ -18,8 +18,8 @@ and compile_deployer vars payload =
     EVM.from_int (loader_length + (EVM.opcodes_size inits));
     EVM.from_int 0;
     EVM.CODECOPY;
-    EVM.from_int 0;
-    EVM.RETURN;
+    EVM.from_int 0;     (* offset = memory address 0 *)
+    EVM.RETURN;         (* RETURN offset, length *)
   ] in
   [(0, inits @ loader)]
 
@@ -30,12 +30,12 @@ and compile_data_var index = function
 
 and compile_dispatcher program =
   let prelude = [
-    EVM.from_int 0xE0;
-    EVM.from_int 0x02;
-    EVM.EXP;  (* 2^224 *)
-    EVM.from_int 0;
-    EVM.CALLDATALOAD;
-    EVM.DIV;
+    EVM.from_int 0xE0;  (* b = 224 *)
+    EVM.from_int 0x02;  (* a = 2 *)
+    EVM.EXP;            (* EXP a, b (2^224) *)
+    EVM.from_int 0;     (* i = 0 *)
+    EVM.CALLDATALOAD;   (* CALLDATALOAD i *)
+    EVM.DIV;            (* DIV a, b *)
   ] in
   let tests = List.concat (List.mapi compile_dispatcher_test program) in
   let postlude = [EVM.STOP] in
@@ -45,12 +45,14 @@ and compile_dispatcher_test index = function
   | Clarity.DataVar _ -> failwith "unreachable"
   | PublicFunction (name, _, _)
   | PublicReadOnlyFunction (name, _, _) ->
+    let hash = function_hash name in
+    let dest = 1 + index in
     [
-      EVM.DUP 1;
-      EVM.PUSH (4, (function_hash name));
-      EVM.EQ;
-      EVM.from_int (1 + index);
-      EVM.JUMPI;
+      EVM.DUP 1;        (* b = top of stack *)
+      EVM.PUSH (4, hash);  (* a = keccak256(function_sig)[:4] *)
+      EVM.EQ;           (* cond = EQ a, b *)
+      EVM.from_int dest;   (* dest = the function prelude *)
+      EVM.JUMPI;        (* JUMPI dest, cond *)
     ]
   | _ -> failwith "not implemented yet"  (* TODO *)
 
@@ -63,11 +65,26 @@ and compile_definition index = function
   | PublicReadOnlyFunction func -> compile_function index func
   | _ -> failwith "not implemented yet"  (* TODO *)
 
-and compile_function index (_name, _params, _body) =
-  (1 + index, [EVM.JUMPDEST; EVM.POP; EVM.from_int (1 + index); EVM.STOP])  (* TODO *)
+and compile_function index (_, _, body) =
+  let prelude = [
+    EVM.JUMPDEST;       (* the dispatcher will jump here *)
+    EVM.POP;            (* clean up from the dispatcher logic *)
+  ] in
+  let body = List.concat_map compile_expression body in
+  let postlude = [      (* value expected on top of stack *)
+    EVM.from_int 0;     (* offset = memory address 0 *)
+    EVM.MSTORE;         (* MSTORE offset, value *)
+    EVM.from_int 0x20;  (* length = 256 bits *)
+    EVM.from_int 0;     (* offset = memory address 0 *)
+    EVM.RETURN;         (* RETURN offset, length *)
+    EVM.STOP;           (* redundant, but a good marker for EOF *)
+  ] in
+  (1 + index, prelude @ body @ postlude)
 
 and compile_expression = function
   | Literal lit -> compile_literal lit
+  | Ok expr -> compile_expression expr
+  | VarGet (_var) -> [EVM.from_int 0; EVM.SLOAD]  (* TODO: lookup *)
   | _ -> failwith "not implemented yet"  (* TODO *)
 
 and compile_literal = function
