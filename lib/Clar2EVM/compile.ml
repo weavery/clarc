@@ -84,7 +84,24 @@ and compile_function index (_, _, body) =
 and compile_expression = function
   | Literal lit -> compile_literal lit
   | Ok expr -> compile_expression expr
-  | VarGet (_var) -> [EVM.from_int 0; EVM.SLOAD]  (* TODO: lookup *)
+  | VarGet (_) -> [
+      EVM.from_int 0;   (* TODO: lookup *)
+      EVM.SLOAD;        (* SLOAD key *)
+    ]
+  | VarSet (_, val') ->
+    let val' = compile_expression val' in
+    val' @ [
+      EVM.from_int 0;   (* TODO: lookup *)
+      EVM.SSTORE;       (* SSTORE key, value *)
+    ]
+  | Add [a; b] ->
+    let a = compile_expression a in
+    let b = compile_expression b in
+    b @ a @ [EVM.ADD]   (* ADD a, b *)
+  | Sub [a; b] ->
+    let a = compile_expression a in
+    let b = compile_expression b in
+    b @ a @ [EVM.SUB]   (* SUB a, b *)
   | _ -> failwith "not implemented yet"  (* TODO *)
 
 and compile_literal = function
