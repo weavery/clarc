@@ -10,6 +10,8 @@ More specifically, the Clarc compiler, called `clarc`, parses `.clar` files and
 compiles them into an equivalent EVM bytecode program that runs on the Ethereum
 blockchain.
 
+[![Screencast](https://asciinema.org/a/365265.svg)](https://asciinema.org/a/365265)
+
 *Note: Here be dragons. This is a pre-alpha, work-in-progress
 project. Assume nothing works, and you may be pleasantly surprised on
 occasion.*
