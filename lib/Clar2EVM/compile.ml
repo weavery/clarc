@@ -1,5 +1,7 @@
 (* This is free and unencumbered software released into the public domain. *)
 
+let unreachable () = failwith "unreachable"
+
 let rec compile_contract program =
   let is_var = function Clarity.DataVar _ -> true | _ -> false in
   let (vars, program) = List.partition is_var program in
@@ -10,7 +12,7 @@ let rec compile_contract program =
   (deployer, payload)
 
 and compile_deployer vars payload =
-  let inits = List.concat (List.mapi compile_data_var vars) in
+  let inits = List.concat (List.mapi compile_var vars) in
   let loader_length = 11 in  (* keep in sync with bytecode below *)
   let loader = [
     EVM.from_int (EVM.program_size payload);
@@ -23,10 +25,12 @@ and compile_deployer vars payload =
   ] in
   [(0, inits @ loader)]
 
-and compile_data_var index = function
-  | Clarity.DataVar (_name, _type', value) ->
+and compile_var index = function
+  | Clarity.Constant _ -> failwith "define-constant not implemented yet"  (* TODO *)
+  | DataVar (_name, _type', value) ->
     compile_expression value @ [EVM.from_int index; EVM.SSTORE]
-  | _ -> failwith "unreachable"
+  | Map _ -> failwith "define-map not implemented yet"  (* TODO *)
+  | _ -> unreachable ()
 
 and compile_dispatcher program =
   let prelude = [
@@ -42,7 +46,8 @@ and compile_dispatcher program =
   [(0, prelude @ tests @ postlude)]
 
 and compile_dispatcher_test index = function
-  | Clarity.DataVar _ -> failwith "unreachable"
+  | Clarity.Constant _ | DataVar _ | Map _ -> unreachable ()
+  | PrivateFunction _ -> []
   | PublicFunction (name, _, _)
   | PublicReadOnlyFunction (name, _, _) ->
     let hash = function_hash name in
@@ -54,16 +59,15 @@ and compile_dispatcher_test index = function
       EVM.from_int dest;   (* dest = the function prelude *)
       EVM.JUMPI;        (* JUMPI dest, cond *)
     ]
-  | _ -> failwith "not implemented yet"  (* TODO *)
 
 and compile_program program =
   List.mapi compile_definition program
 
 and compile_definition index = function
-  | Clarity.DataVar _ -> failwith "unreachable"
+  | Clarity.Constant _ | DataVar _ | Map _ -> unreachable ()
+  | PrivateFunction func -> compile_function index func
   | PublicFunction func -> compile_function index func
   | PublicReadOnlyFunction func -> compile_function index func
-  | _ -> failwith "not implemented yet"  (* TODO *)
 
 and compile_function index (_, _, body) =
   let prelude = [
@@ -102,11 +106,11 @@ and compile_expression = function
     let a = compile_expression a in
     let b = compile_expression b in
     b @ a @ [EVM.SUB]   (* SUB a, b *)
-  | _ -> failwith "not implemented yet"  (* TODO *)
+  | _ -> failwith "expression not implemented yet"  (* TODO *)
 
 and compile_literal = function
   | IntLiteral z -> [EVM.from_big_int z]
-  | _ -> failwith "not implemented yet"  (* TODO *)
+  | _ -> failwith "literal not implemented yet"  (* TODO *)
 
 and link_offsets program =
   let rec loop pc = function
@@ -137,4 +141,4 @@ and function_hash = function
   | "get-counter" -> "\x8a\xda\x06\x6e"
   | "increment" -> "\xd0\x9d\xe0\x8a"
   | "decrement" -> "\x2b\xae\xce\xb7"
-  | _ -> failwith "not implemented yet"  (* TODO: implement Keccak-256 *)
+  | _ -> failwith "Keccak-256 not implemented yet"  (* TODO: implement Keccak-256 *)
