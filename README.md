@@ -171,6 +171,9 @@ Clarc from source code:
 - [Cppo](https://opam.ocaml.org/packages/cppo/)
   for code preprocessing
 
+- [Cryptokit](https://opam.ocaml.org/packages/cryptokit/)
+  for the Keccak-256 hash function
+
 - [ISO8601](https://opam.ocaml.org/packages/ISO8601/)
   for date handling
 
@@ -183,7 +186,7 @@ Clarc from source code:
 These aforementioned dependencies are all best installed via OPAM:
 
 ```bash
-opam install -y alcotest cmdliner cppo iso8601 num ocolor
+opam install -y alcotest cmdliner cppo cryptokit iso8601 num ocolor
 opam pin add -y clarity-lang https://github.com/weavery/clarity.ml -k git
 ```
 
