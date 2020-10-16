@@ -137,8 +137,27 @@ and link_program program =
   in
   link_blocks program
 
-and function_hash = function
-  | "get-counter" -> "\x8a\xda\x06\x6e"
+and function_hash name =
+  match (mangle_name name) with
+  | "getCounter" -> "\x8a\xda\x06\x6e"
   | "increment" -> "\xd0\x9d\xe0\x8a"
   | "decrement" -> "\x2b\xae\xce\xb7"
   | _ -> failwith "Keccak-256 not implemented yet"  (* TODO: implement Keccak-256 *)
+
+and mangle_name = function
+  | "*" -> "mul"
+  | "+" -> "add"
+  | "-" -> "sub"
+  | "/" -> "div"
+  | "<" -> "lt"
+  | "<=" -> "le"
+  | ">" -> "gt"
+  | ">=" -> "ge"
+  | "sha512/256" -> "sha512_256"
+  | "try!" -> "tryUnwrap"
+  | name ->
+    let filtered_chars = Str.regexp "[/?!]" in
+    let name = Str.global_replace filtered_chars "" name in
+    let words = String.split_on_char '-' name in
+    let words = List.map String.capitalize_ascii words in
+    String.uncapitalize_ascii (String.concat "" words)

@@ -6,4 +6,4 @@
  (preprocessor_deps
   compile.ml
   compile.mli)
- (libraries EVM clarity-lang))
+ (libraries EVM clarity-lang str))
