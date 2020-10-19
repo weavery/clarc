@@ -1,10 +1,15 @@
 (* This is free and unencumbered software released into the public domain. *)
 
-let keccak256 = Cryptokit.hash_string (Cryptokit.Hash.keccak 256)
+let keccak256 input =
+  let hash_function = Cryptokit.Hash.keccak 256 in
+  let hash = Cryptokit.hash_string hash_function input in
+  String.sub hash 0 4
 
 let keccak () =
-  let abc = keccak256 "abc" in
-  Alcotest.(check string) "" abc "\x4e\x03\x65\x7a\xea\x45\xa9\x4f\xc7\xd4\x7b\xa8\x26\xc8\xd6\x67\xc0\xd1\xe6\xe3\x3a\x64\xa0\x36\xec\x44\xf5\x8f\xa1\x2d\x6c\x45"
+  Alcotest.(check string) "" (keccak256 "abc") "\x4e\x03\x65\x7a";
+  Alcotest.(check string) "" (keccak256 "getCounter()") "\x8a\xda\x06\x6e";
+  Alcotest.(check string) "" (keccak256 "increment()") "\xd0\x9d\xe0\x8a";
+  Alcotest.(check string) "" (keccak256 "decrement()") "\x2b\xae\xce\xb7"
 
 let () =
   Alcotest.run "Clar2EVM" [

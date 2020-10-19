@@ -138,11 +138,10 @@ and link_program program =
   link_blocks program
 
 and function_hash name =
-  match (mangle_name name) with
-  | "getCounter" -> "\x8a\xda\x06\x6e"
-  | "increment" -> "\xd0\x9d\xe0\x8a"
-  | "decrement" -> "\x2b\xae\xce\xb7"
-  | _ -> failwith "Keccak-256 not implemented yet"  (* TODO: implement Keccak-256 *)
+  let signature = Printf.sprintf "%s()" (mangle_name name) in  (* TODO *)
+  let hash_function = Cryptokit.Hash.keccak 256 in
+  let hash = Cryptokit.hash_string hash_function signature in
+  String.sub hash 0 4
 
 and mangle_name = function
   | "*" -> "mul"
