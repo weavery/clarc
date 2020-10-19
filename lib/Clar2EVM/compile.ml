@@ -106,9 +106,12 @@ and compile_expression = function
     let a = compile_expression a in
     let b = compile_expression b in
     b @ a @ [EVM.SUB]   (* SUB a, b *)
+  | UnwrapPanic _ -> []  (* TODO *)
+  | FunctionCall _ -> []  (* TODO *)
   | _ -> failwith "expression not implemented yet"  (* TODO *)
 
 and compile_literal = function
+  | NoneLiteral -> []  (* TODO *)
   | IntLiteral z -> [EVM.from_big_int z]
   | _ -> failwith "literal not implemented yet"  (* TODO *)
 
