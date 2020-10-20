@@ -84,23 +84,36 @@ and compile_program env program =
 
 and compile_definition env index = function
   | Clarity.Constant _ | DataVar _ | Map _ -> unreachable ()
-  | PrivateFunction func
+  | PrivateFunction func ->
+    compile_private_function env index func
   | PublicFunction func
   | PublicReadOnlyFunction func ->
-    compile_function env index func
+    compile_public_function env index func
 
-and compile_function env index (_, _, body) =
+and compile_public_function env index (_, _, body) =
   let prelude = [
-    EVM.JUMPDEST;       (* the dispatcher will jump here *)
+    EVM.JUMPDEST;       (* the contract dispatcher will jump here *)
     EVM.POP;            (* clean up from the dispatcher logic *)
   ] in
   let body = List.concat_map (compile_expression env) body in
-  let postlude = [      (* value expected on top of stack *)
+  let postlude = [      (* return value expected on top of stack *)
     EVM.zero;           (* offset = memory address 0 *)
     EVM.MSTORE;         (* MSTORE offset, value *)
     EVM.from_int 0x20;  (* length = 256 bits *)
     EVM.zero;           (* offset = memory address 0 *)
     EVM.RETURN;         (* RETURN offset, length *)
+    EVM.STOP;           (* redundant, but a good marker for EOF *)
+  ] in
+  (1 + index, prelude @ body @ postlude)
+
+and compile_private_function env index (_, _, body) =
+  let prelude = [
+    EVM.JUMPDEST;       (* the calling function will jump here, with the return PC on TOS *)
+  ] in
+  let body = List.concat_map (compile_expression env) body in
+  let postlude = [      (* return value expected on top of stack *)
+    EVM.SWAP 1;         (* destination, result -- result, destination *)
+    EVM.JUMP;           (* JUMP destination *)
     EVM.STOP;           (* redundant, but a good marker for EOF *)
   ] in
   (1 + index, prelude @ body @ postlude)
@@ -136,12 +149,14 @@ and compile_expression env = function
       | None -> failwith (Printf.sprintf "unknown function: %s" name)
       | Some index -> index
     in
-    [
-      (* TODO: calculate and push return PC *)
-      (* TODO: push function call arguments *)
-      EVM.from_int block_id;
-      EVM.JUMP
-    ]
+    let call_sequence = [
+        (* TODO: push function call arguments *)
+        EVM.from_int block_id;
+        EVM.JUMP
+      ]
+    in
+    let call_length = EVM.opcodes_size call_sequence in
+    (compile_relative_offset call_length) @ call_sequence @ [EVM.JUMPDEST]
   | _ -> failwith "expression not implemented yet"  (* TODO *)
 
 and compile_branch condition then_block else_block =
@@ -155,6 +170,10 @@ and compile_branch condition then_block else_block =
 and compile_relative_jump offset jump =
   let offset = 5 + offset in
   [EVM.PC; EVM.from_int offset; EVM.ADD; jump]
+
+and compile_relative_offset offset =
+  let offset = 4 + offset in
+  [EVM.PC; EVM.from_int offset; EVM.ADD]
 
 and compile_literal = function
   | NoneLiteral -> [EVM.zero]
