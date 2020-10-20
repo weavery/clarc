@@ -1,5 +1,9 @@
 (* This is free and unencumbered software released into the public domain. *)
 
+type context =
+  { vars: string list;
+    funs: string list; }
+
 let unreachable () = failwith "unreachable"
 
 let rec compile_contract program =
@@ -7,32 +11,42 @@ let rec compile_contract program =
     | Clarity.Constant _ | DataVar _ | Map _ -> true
     | _ -> false
   in
-  let (vars, program) = List.partition is_var program in
-  let dispatcher = compile_dispatcher program in
-  let program = compile_program program in
+  let name_of = function
+    | Clarity.Constant (name, _)
+    | DataVar (name, _, _)
+    | Map (name, _, _)
+    | PrivateFunction (name, _, _)
+    | PublicFunction (name, _, _)
+    | PublicReadOnlyFunction (name, _, _) ->
+      name
+  in
+  let (vars, funs) = List.partition is_var program in
+  let globals = { vars = List.map name_of vars; funs = List.map name_of funs; } in
+  let dispatcher = compile_dispatcher funs in
+  let program = compile_program globals funs in
   let payload = link_program (dispatcher @ program) in
-  let deployer = compile_deployer vars payload in
+  let deployer = compile_deployer globals vars payload in
   (deployer, payload)
 
-and compile_deployer vars payload =
-  let inits = List.concat (List.mapi compile_var vars) in
+and compile_deployer env vars payload =
+  let inits = List.concat (List.mapi (compile_var env) vars) in
   let loader_length = 11 in  (* keep in sync with bytecode below *)
   let loader = [
     EVM.from_int (EVM.program_size payload);
     EVM.DUP 1;
     EVM.from_int (loader_length + (EVM.opcodes_size inits));
-    EVM.from_int 0;
+    EVM.zero;
     EVM.CODECOPY;
-    EVM.from_int 0;     (* offset = memory address 0 *)
+    EVM.zero;           (* offset = memory address 0 *)
     EVM.RETURN;         (* RETURN offset, length *)
   ] in
   [(0, inits @ loader)]
 
-and compile_var index = function
+and compile_var env index = function
   | Clarity.Constant _ ->
     failwith "define-constant not implemented yet"  (* TODO *)
   | DataVar (_name, _type', value) ->
-    compile_expression value @ [EVM.from_int index; EVM.SSTORE]
+    compile_expression env value @ [EVM.from_int index; EVM.SSTORE]
   | Map _ ->
     failwith "define-map not implemented yet"  (* TODO *)
   | _ -> unreachable ()
@@ -42,7 +56,7 @@ and compile_dispatcher program =
     EVM.from_int 0xE0;  (* b = 224 *)
     EVM.from_int 0x02;  (* a = 2 *)
     EVM.EXP;            (* EXP a, b (2^224) *)
-    EVM.from_int 0;     (* i = 0 *)
+    EVM.zero;           (* i = 0 *)
     EVM.CALLDATALOAD;   (* CALLDATALOAD i *)
     EVM.DIV;            (* DIV a, b *)
   ] in
@@ -65,58 +79,69 @@ and compile_dispatcher_test index = function
       EVM.JUMPI;        (* JUMPI dest, cond *)
     ]
 
-and compile_program program =
-  List.mapi compile_definition program
+and compile_program env program =
+  List.mapi (compile_definition env) program
 
-and compile_definition index = function
+and compile_definition env index = function
   | Clarity.Constant _ | DataVar _ | Map _ -> unreachable ()
-  | PrivateFunction func -> compile_function index func
-  | PublicFunction func -> compile_function index func
-  | PublicReadOnlyFunction func -> compile_function index func
+  | PrivateFunction func
+  | PublicFunction func
+  | PublicReadOnlyFunction func ->
+    compile_function env index func
 
-and compile_function index (_, _, body) =
+and compile_function env index (_, _, body) =
   let prelude = [
     EVM.JUMPDEST;       (* the dispatcher will jump here *)
     EVM.POP;            (* clean up from the dispatcher logic *)
   ] in
-  let body = List.concat_map compile_expression body in
+  let body = List.concat_map (compile_expression env) body in
   let postlude = [      (* value expected on top of stack *)
-    EVM.from_int 0;     (* offset = memory address 0 *)
+    EVM.zero;           (* offset = memory address 0 *)
     EVM.MSTORE;         (* MSTORE offset, value *)
     EVM.from_int 0x20;  (* length = 256 bits *)
-    EVM.from_int 0;     (* offset = memory address 0 *)
+    EVM.zero;           (* offset = memory address 0 *)
     EVM.RETURN;         (* RETURN offset, length *)
     EVM.STOP;           (* redundant, but a good marker for EOF *)
   ] in
   (1 + index, prelude @ body @ postlude)
 
-and compile_expression = function
+and compile_expression env = function
   | Literal lit -> compile_literal lit
-  | Ok expr -> compile_expression expr
+  | Ok expr -> compile_expression env expr
   | VarGet (_) -> [
       EVM.from_int 0;   (* TODO: lookup *)
       EVM.SLOAD;        (* SLOAD key *)
     ]
   | VarSet (_, val') ->
-    let val' = compile_expression val' in
+    let val' = compile_expression env val' in
     val' @ [
       EVM.from_int 0;   (* TODO: lookup *)
       EVM.SSTORE;       (* SSTORE key, value *)
     ]
   | Add [a; b] ->
-    let a = compile_expression a in
-    let b = compile_expression b in
+    let a = compile_expression env a in
+    let b = compile_expression env b in
     b @ a @ [EVM.ADD]   (* ADD a, b *)
   | Sub [a; b] ->
-    let a = compile_expression a in
-    let b = compile_expression b in
+    let a = compile_expression env a in
+    let b = compile_expression env b in
     b @ a @ [EVM.SUB]   (* SUB a, b *)
   | UnwrapPanic input ->
-    let input = compile_expression input in
+    let input = compile_expression env input in
     input @ compile_branch [EVM.DUP 1; EVM.ISZERO]
-      [EVM.POP; EVM.STOP]
+      [EVM.POP; EVM.zero; EVM.zero; EVM.REVERT]
       [EVM.SLOAD]
-  | FunctionCall _ -> []  (* TODO *)
+  | FunctionCall (name, _args) ->
+    let block_id = match lookup_symbol env.funs name with
+      | None -> failwith (Printf.sprintf "unknown function: %s" name)
+      | Some index -> index
+    in
+    [
+      (* TODO: calculate and push return PC *)
+      (* TODO: push function call arguments *)
+      EVM.from_int block_id;
+      EVM.JUMP
+    ]
   | _ -> failwith "expression not implemented yet"  (* TODO *)
 
 and compile_branch condition then_block else_block =
@@ -132,7 +157,7 @@ and compile_relative_jump offset jump =
   [EVM.PC; EVM.from_int offset; EVM.ADD; jump]
 
 and compile_literal = function
-  | NoneLiteral -> [EVM.from_int 0]
+  | NoneLiteral -> [EVM.zero]
   | IntLiteral z -> [EVM.from_big_int z]
   | _ -> failwith "literal not implemented yet"  (* TODO *)
 
@@ -149,10 +174,11 @@ and link_program program =
   let block_offsets = link_offsets program in
   let rec link_block = function
     | [] -> []
-    | EVM.PUSH (1, block_id) :: EVM.JUMPI :: rest ->
+    | EVM.PUSH (1, block_id) :: (EVM.JUMP as jump) :: rest
+    | EVM.PUSH (1, block_id) :: (EVM.JUMPI as jump) :: rest ->
       let block_id = String.get block_id 0 |> Char.code in
       let block_pc = List.nth block_offsets block_id in
-      EVM.from_int block_pc :: EVM.JUMPI :: link_block rest
+      EVM.from_int block_pc :: jump :: link_block rest
     | op :: rest -> op :: link_block rest
   in
   let rec link_blocks = function
@@ -184,3 +210,12 @@ and mangle_name = function
     let words = String.split_on_char '-' name in
     let words = List.map String.capitalize_ascii words in
     String.uncapitalize_ascii (String.concat "" words)
+
+and lookup_symbol env symbol =
+  let rec loop index = function
+    | [] -> None
+    | hd :: tl ->
+      if hd = symbol then Some index
+      else loop (index + 1) tl
+  in
+  loop 1 env
