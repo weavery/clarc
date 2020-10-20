@@ -3,7 +3,10 @@
 let unreachable () = failwith "unreachable"
 
 let rec compile_contract program =
-  let is_var = function Clarity.DataVar _ -> true | _ -> false in
+  let is_var = function
+    | Clarity.Constant _ | DataVar _ | Map _ -> true
+    | _ -> false
+  in
   let (vars, program) = List.partition is_var program in
   let dispatcher = compile_dispatcher program in
   let program = compile_program program in
@@ -26,10 +29,12 @@ and compile_deployer vars payload =
   [(0, inits @ loader)]
 
 and compile_var index = function
-  | Clarity.Constant _ -> failwith "define-constant not implemented yet"  (* TODO *)
+  | Clarity.Constant _ ->
+    failwith "define-constant not implemented yet"  (* TODO *)
   | DataVar (_name, _type', value) ->
     compile_expression value @ [EVM.from_int index; EVM.SSTORE]
-  | Map _ -> failwith "define-map not implemented yet"  (* TODO *)
+  | Map _ ->
+    failwith "define-map not implemented yet"  (* TODO *)
   | _ -> unreachable ()
 
 and compile_dispatcher program =
@@ -106,12 +111,28 @@ and compile_expression = function
     let a = compile_expression a in
     let b = compile_expression b in
     b @ a @ [EVM.SUB]   (* SUB a, b *)
-  | UnwrapPanic _ -> []  (* TODO *)
+  | UnwrapPanic input ->
+    let input = compile_expression input in
+    input @ compile_branch [EVM.DUP 1; EVM.ISZERO]
+      [EVM.POP; EVM.STOP]
+      [EVM.SLOAD]
   | FunctionCall _ -> []  (* TODO *)
   | _ -> failwith "expression not implemented yet"  (* TODO *)
 
+and compile_branch condition then_block else_block =
+  let else_block = [EVM.JUMPDEST] @ else_block in
+  let else_length = EVM.opcodes_size else_block in
+  let then_block = then_block @ (compile_relative_jump else_length EVM.JUMP) in
+  let then_length = EVM.opcodes_size then_block in
+  condition @ [EVM.ISZERO] @ (compile_relative_jump then_length EVM.JUMPI) @
+    then_block @ else_block @ [EVM.JUMPDEST]
+
+and compile_relative_jump offset jump =
+  let offset = 5 + offset in
+  [EVM.PC; EVM.from_int offset; EVM.ADD; jump]
+
 and compile_literal = function
-  | NoneLiteral -> []  (* TODO *)
+  | NoneLiteral -> [EVM.from_int 0]
   | IntLiteral z -> [EVM.from_big_int z]
   | _ -> failwith "literal not implemented yet"  (* TODO *)
 
