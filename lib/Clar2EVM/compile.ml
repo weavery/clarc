@@ -130,17 +130,14 @@ and compile_expression env = function
   | Ok expr -> compile_expression env expr
   | Err expr -> compile_expression env expr
 
-  | VarGet (_) -> [
-      EVM.from_int 0;   (* TODO: lookup *)
-      EVM.SLOAD;        (* SLOAD key *)
-    ]
+  | VarGet var ->
+    let var_id = lookup_variable_storage env var in
+    [EVM.from_int var_id; EVM.SLOAD]  (* SLOAD key *)
 
-  | VarSet (_, val') ->
+  | VarSet (var, val') ->
+    let var_id = lookup_variable_storage env var in
     let val' = compile_expression env val' in
-    val' @ [
-      EVM.from_int 0;   (* TODO: lookup *)
-      EVM.SSTORE;       (* SSTORE key, value *)
-    ]
+    val' @ [EVM.from_int var_id; EVM.SSTORE]  (* SSTORE key, value *)
 
   | Add [a; b] ->
     let a = compile_expression env a in
@@ -160,7 +157,7 @@ and compile_expression env = function
 
   | Keyword "tx-sender" -> [EVM.CALLER]
 
-  | FunctionCall ("get", [Identifier "v2"; Identifier "entry"]) ->  (* TODO *)
+  | FunctionCall ("get", [Identifier "v2"; Identifier _]) ->  (* TODO *)
     [
       EVM.from_int 0x80;                 (* 128 bits *)
       EVM.from_int 2; EVM.EXP; EVM.MUL;  (* equivalent to EVM.SHL *)
@@ -168,12 +165,14 @@ and compile_expression env = function
       EVM.from_int 2; EVM.EXP; EVM.SWAP 1; EVM.DIV;  (* equivalent to EVM.SWAP 1; EVM.SHR *)
     ]
 
-  | FunctionCall ("map-set", [_var; key; value]) ->  (* TODO *)
+  | FunctionCall ("map-set", [Identifier var; key; value]) ->  (* TODO *)
+    let _var_id = lookup_variable_storage env var in
     let key = compile_expression env key in
     let value = compile_expression env value in
     value @ key @ [EVM.SSTORE]
 
-  | FunctionCall ("map-get?", [_var; TupleExpression [("key", _key)]]) ->  (* TODO *)
+  | FunctionCall ("map-get?", [Identifier var; TupleExpression [("key", _key)]]) ->  (* TODO *)
+    let _var_id = lookup_variable_storage env var in
     let key = [EVM.CALLER] in  (* TODO *)
     key @ [EVM.SLOAD; EVM.DUP 1; EVM.ISZERO; EVM.NOT]
 
@@ -184,10 +183,7 @@ and compile_expression env = function
     input_value @ compile_branch [EVM.ISZERO] ([EVM.POP] @ none_block) some_block
 
   | FunctionCall (name, _args) ->
-    let block_id = match lookup_symbol env.funs name with
-      | None -> failwith (Printf.sprintf "unknown function: %s" name)
-      | Some index -> index
-    in
+    let block_id = lookup_function_block env name in
     let call_sequence = [
         (* TODO: push function call arguments *)
         EVM.from_int block_id;
@@ -278,11 +274,21 @@ and mangle_name = function
     let words = List.map String.capitalize_ascii words in
     String.uncapitalize_ascii (String.concat "" words)
 
-and lookup_symbol env symbol =
+and lookup_variable_storage env symbol =
+  match lookup_symbol env.vars symbol with
+  | None -> failwith (Printf.sprintf "unknown variable: %s" symbol)
+  | Some index -> index
+
+and lookup_function_block env symbol =
+  match lookup_symbol env.funs symbol with
+  | None -> failwith (Printf.sprintf "unknown function: %s" symbol)
+  | Some index -> 1 + index
+
+and lookup_symbol symbols symbol =
   let rec loop index = function
     | [] -> None
     | hd :: tl ->
       if hd = symbol then Some index
       else loop (index + 1) tl
   in
-  loop 1 env
+  loop 0 symbols
