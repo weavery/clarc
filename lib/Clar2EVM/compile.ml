@@ -47,8 +47,7 @@ and compile_var env index = function
     failwith "define-constant not implemented yet"  (* TODO *)
   | DataVar (_name, _type', value) ->
     compile_expression env value @ [EVM.from_int index; EVM.SSTORE]
-  | Map _ ->
-    failwith "define-map not implemented yet"  (* TODO *)
+  | Map _ -> failwith "define-map not implemented yet"  (* TODO: kv-store.clar *)
   | _ -> unreachable ()
 
 and compile_dispatcher program =
@@ -94,6 +93,7 @@ and compile_public_function env index (_, _, body) =
   let prelude = [
     EVM.JUMPDEST;       (* the contract dispatcher will jump here *)
     EVM.POP;            (* clean up from the dispatcher logic *)
+    (* TODO: fetch function arguments *)
   ] in
   let body = List.concat_map (compile_expression env) body in
   let postlude = [      (* return value expected on top of stack *)
@@ -121,6 +121,7 @@ and compile_private_function env index (_, _, body) =
 and compile_expression env = function
   | Literal lit -> compile_literal lit
   | Ok expr -> compile_expression env expr
+  | Err expr -> compile_expression env expr  (* TODO: kv-store.clar *)
   | VarGet (_) -> [
       EVM.from_int 0;   (* TODO: lookup *)
       EVM.SLOAD;        (* SLOAD key *)
@@ -144,6 +145,10 @@ and compile_expression env = function
     input @ compile_branch [EVM.DUP 1; EVM.ISZERO]
       [EVM.POP; EVM.zero; EVM.zero; EVM.REVERT]
       [EVM.SLOAD]
+  | FunctionCall ("get", _args) -> failwith "get not implemented yet"  (* TODO: kv-store.clar *)
+  | FunctionCall ("map-set", _args) -> failwith "map-set not implemented yet"  (* TODO: kv-store.clar *)
+  | FunctionCall ("map-get?", _args) -> failwith "map-get? not implemented yet"  (* TODO: kv-store.clar *)
+  | FunctionCall ("match", _args) -> failwith "map-set not implemented yet"  (* TODO: kv-store.clar *)
   | FunctionCall (name, _args) ->
     let block_id = match lookup_symbol env.funs name with
       | None -> failwith (Printf.sprintf "unknown function: %s" name)
