@@ -191,8 +191,14 @@ and compile_literal = function
   | NoneLiteral -> [EVM.zero]
   | BoolLiteral b -> [EVM.from_int (if b then 1 else 0)]
   | IntLiteral z -> [EVM.from_big_int z]
+  | TupleLiteral [("v1", IntLiteral v1); ("v2", IntLiteral v2)] ->  (* FIXME *)
+    compile_packed_word v1 v2
   | TupleLiteral _ -> unimplemented "arbitrary tuple literals"  (* TODO *)
   | _ -> unimplemented "arbitrary literals"  (* TODO *)
+
+and compile_packed_word hi lo =
+  (* [EVM.from_big_int hi; EVM.from_int 0x80; EVM.SHL; EVM.from_big_int lo; EVM.OR] *)
+  [EVM.from_big_int hi; EVM.from_int 0x80; EVM.from_int 2; EVM.EXP; EVM.MUL; EVM.from_big_int lo; EVM.OR]
 
 and link_offsets program =
   let rec loop pc = function
