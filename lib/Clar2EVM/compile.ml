@@ -6,6 +6,8 @@ type context =
 
 let unreachable () = failwith "unreachable"
 
+let unimplemented what = failwith (Printf.sprintf "%s not implemented yet" what)
+
 let rec compile_contract program =
   let is_var = function
     | Clarity.Constant _ | DataVar _ | Map _ -> true
@@ -21,7 +23,10 @@ let rec compile_contract program =
       name
   in
   let (vars, funs) = List.partition is_var program in
-  let globals = { vars = List.map name_of vars; funs = List.map name_of funs; } in
+  let globals =
+    { vars = List.map name_of vars;
+      funs = List.map name_of funs; }
+  in
   let dispatcher = compile_dispatcher funs in
   let program = compile_program globals funs in
   let payload = link_program (dispatcher @ program) in
@@ -44,7 +49,7 @@ and compile_deployer env vars payload =
 
 and compile_var env index = function
   | Clarity.Constant _ ->
-    failwith "define-constant not implemented yet"  (* TODO *)
+    unimplemented "define-constant"  (* TODO *)
   | DataVar (_name, _type', value) ->
     compile_expression env value @ [EVM.from_int index; EVM.SSTORE]
   | Map _ -> failwith "define-map not implemented yet"  (* TODO: kv-store.clar *)
@@ -120,6 +125,8 @@ and compile_private_function env index (_, _, body) =
 
 and compile_expression env = function
   | Literal lit -> compile_literal lit
+  | TupleExpression [("key", key)] -> compile_expression env key
+  | TupleExpression _ -> unimplemented "arbitrary tuple expressions"  (* TODO *)
   | Ok expr -> compile_expression env expr
   | Err expr -> compile_expression env expr  (* TODO: kv-store.clar *)
   | VarGet (_) -> [
@@ -162,7 +169,7 @@ and compile_expression env = function
     in
     let call_length = EVM.opcodes_size call_sequence in
     (compile_relative_offset call_length) @ call_sequence @ [EVM.JUMPDEST]
-  | _ -> failwith "expression not implemented yet"  (* TODO *)
+  | _ -> unimplemented "arbitrary expressions"  (* TODO *)
 
 and compile_branch condition then_block else_block =
   let else_block = [EVM.JUMPDEST] @ else_block in
@@ -184,7 +191,8 @@ and compile_literal = function
   | NoneLiteral -> [EVM.zero]
   | BoolLiteral b -> [EVM.from_int (if b then 1 else 0)]
   | IntLiteral z -> [EVM.from_big_int z]
-  | _ -> failwith "literal not implemented yet"  (* TODO *)
+  | TupleLiteral _ -> unimplemented "arbitrary tuple literals"  (* TODO *)
+  | _ -> unimplemented "arbitrary literals"  (* TODO *)
 
 and link_offsets program =
   let rec loop pc = function
