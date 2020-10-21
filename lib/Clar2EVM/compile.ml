@@ -177,6 +177,7 @@ and compile_relative_offset offset =
 
 and compile_literal = function
   | NoneLiteral -> [EVM.zero]
+  | BoolLiteral b -> [EVM.from_int (if b then 1 else 0)]
   | IntLiteral z -> [EVM.from_big_int z]
   | _ -> failwith "literal not implemented yet"  (* TODO *)
 
