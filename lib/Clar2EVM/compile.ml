@@ -52,7 +52,7 @@ and compile_var env index = function
     unimplemented "define-constant"  (* TODO *)
   | DataVar (_name, _type', value) ->
     compile_expression env value @ [EVM.from_int index; EVM.SSTORE]
-  | Map _ -> failwith "define-map not implemented yet"  (* TODO: kv-store.clar *)
+  | Map _ -> []  (* TODO: unimplemented "define-map" *)
   | _ -> unreachable ()
 
 and compile_dispatcher program =
@@ -128,34 +128,61 @@ and compile_expression env = function
   | TupleExpression [("key", key)] -> compile_expression env key
   | TupleExpression _ -> unimplemented "arbitrary tuple expressions"  (* TODO *)
   | Ok expr -> compile_expression env expr
-  | Err expr -> compile_expression env expr  (* TODO: kv-store.clar *)
+  | Err expr -> compile_expression env expr
+
   | VarGet (_) -> [
       EVM.from_int 0;   (* TODO: lookup *)
       EVM.SLOAD;        (* SLOAD key *)
     ]
+
   | VarSet (_, val') ->
     let val' = compile_expression env val' in
     val' @ [
       EVM.from_int 0;   (* TODO: lookup *)
       EVM.SSTORE;       (* SSTORE key, value *)
     ]
+
   | Add [a; b] ->
     let a = compile_expression env a in
     let b = compile_expression env b in
     b @ a @ [EVM.ADD]   (* ADD a, b *)
+
   | Sub [a; b] ->
     let a = compile_expression env a in
     let b = compile_expression env b in
     b @ a @ [EVM.SUB]   (* SUB a, b *)
+
   | UnwrapPanic input ->
     let input = compile_expression env input in
     input @ compile_branch [EVM.DUP 1; EVM.ISZERO]
       [EVM.POP; EVM.zero; EVM.zero; EVM.REVERT]
       [EVM.SLOAD]
-  | FunctionCall ("get", _args) -> failwith "get not implemented yet"  (* TODO: kv-store.clar *)
-  | FunctionCall ("map-set", _args) -> failwith "map-set not implemented yet"  (* TODO: kv-store.clar *)
-  | FunctionCall ("map-get?", _args) -> failwith "map-get? not implemented yet"  (* TODO: kv-store.clar *)
-  | FunctionCall ("match", _args) -> failwith "map-set not implemented yet"  (* TODO: kv-store.clar *)
+
+  | Keyword "tx-sender" -> [EVM.CALLER]
+
+  | FunctionCall ("get", [Identifier "v2"; Identifier "entry"]) ->  (* TODO *)
+    [
+      EVM.from_int 0x80;                 (* 128 bits *)
+      EVM.from_int 2; EVM.EXP; EVM.MUL;  (* equivalent to EVM.SHL *)
+      EVM.from_int 0x80;                 (* 128 bits *)
+      EVM.from_int 2; EVM.EXP; EVM.SWAP 1; EVM.DIV;  (* equivalent to EVM.SWAP 1; EVM.SHR *)
+    ]
+
+  | FunctionCall ("map-set", [_var; key; value]) ->  (* TODO *)
+    let key = compile_expression env key in
+    let value = compile_expression env value in
+    value @ key @ [EVM.SSTORE]
+
+  | FunctionCall ("map-get?", [_var; TupleExpression [("key", _key)]]) ->  (* TODO *)
+    let key = [EVM.CALLER] in  (* TODO *)
+    key @ [EVM.SLOAD; EVM.DUP 1; EVM.ISZERO; EVM.NOT]
+
+  | FunctionCall ("match", [input_expr; _some_binding; some_branch; none_branch]) ->
+    let input_value = compile_expression env input_expr in
+    let some_block = compile_expression env some_branch in
+    let none_block = compile_expression env none_branch in
+    input_value @ compile_branch [EVM.ISZERO] ([EVM.POP] @ none_block) some_block
+
   | FunctionCall (name, _args) ->
     let block_id = match lookup_symbol env.funs name with
       | None -> failwith (Printf.sprintf "unknown function: %s" name)
@@ -169,6 +196,7 @@ and compile_expression env = function
     in
     let call_length = EVM.opcodes_size call_sequence in
     (compile_relative_offset call_length) @ call_sequence @ [EVM.JUMPDEST]
+
   | _ -> unimplemented "arbitrary expressions"  (* TODO *)
 
 and compile_branch condition then_block else_block =
