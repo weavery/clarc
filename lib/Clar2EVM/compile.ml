@@ -215,10 +215,18 @@ and compile_literal = function
   | NoneLiteral -> [EVM.zero]
   | BoolLiteral b -> [EVM.from_int (if b then 1 else 0)]
   | IntLiteral z -> [EVM.from_big_int z]
-  | TupleLiteral [("v1", IntLiteral v1); ("v2", IntLiteral v2)] ->  (* FIXME *)
-    compile_packed_word v1 v2
-  | TupleLiteral _ -> unimplemented "arbitrary tuple literals"  (* TODO *)
-  | _ -> unimplemented "arbitrary literals"  (* TODO *)
+  | UintLiteral z -> [EVM.from_big_int z]
+  | BuffLiteral _ -> unimplemented "buff literals"  (* TODO *)
+  | StringLiteral _ -> unimplemented "string literals"  (* TODO *)
+  | TupleLiteral kvs -> compile_tuple_literal kvs
+
+and compile_tuple_literal = function
+  | [(_, (NoneLiteral as lit))]
+  | [(_, (BoolLiteral _ as lit))]
+  | [(_, (IntLiteral _ as lit))]
+  | [(_, (UintLiteral _ as lit))] -> compile_literal lit
+  | [(_, IntLiteral a); (_, IntLiteral b)] -> compile_packed_word a b
+  | _ -> unimplemented "arbitrary tuple literals"  (* TODO *)
 
 and compile_packed_word hi lo =
   (* [EVM.from_big_int hi; EVM.from_int 0x80; EVM.SHL; EVM.from_big_int lo; EVM.OR] *)
