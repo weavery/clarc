@@ -160,7 +160,7 @@ and compile_expression env = function
 
   | Keyword "tx-sender" -> [EVM.CALLER]
 
-  | FunctionCall ("get", [Identifier "v2"; Identifier _]) ->  (* TODO *)
+  | FunctionCall ("get", [Identifier _; Identifier _]) ->  (* TODO *)
     [
       EVM.from_int 0x80;                 (* 128 bits *)
       EVM.from_int 2; EVM.EXP; EVM.MUL;  (* equivalent to EVM.SHL *)
@@ -235,41 +235,20 @@ and compile_packed_word hi lo =
   (* [EVM.from_big_int hi; EVM.from_int 0x80; EVM.SHL; EVM.from_big_int lo; EVM.OR] *)
   [EVM.from_big_int hi; EVM.from_int 0x80; EVM.from_int 2; EVM.EXP; EVM.MUL; EVM.from_big_int lo; EVM.OR]
 
-and link_offsets program =
-  let rec loop pc = function
-    | [] -> []
-    | (_, body) :: rest ->
-      let next_pc = pc + EVM.opcodes_size body in
-      pc :: loop next_pc rest
-  in
-  loop 0 program
+and compile_param (_, type') =
+  compile_type type'
 
-and link_program program =
-  let block_offsets = link_offsets program in
-  let rec link_block = function
-    | [] -> []
-    | EVM.PUSH (1, block_id) :: (EVM.JUMP as jump) :: rest
-    | EVM.PUSH (1, block_id) :: (EVM.JUMPI as jump) :: rest ->
-      let block_id = String.get block_id 0 |> Char.code in
-      let block_pc = List.nth block_offsets block_id in
-      EVM.from_int block_pc :: jump :: link_block rest
-    | op :: rest -> op :: link_block rest
-  in
-  let rec link_blocks = function
-    | [] -> []
-    | (id, body) :: rest -> (id, link_block body) :: link_blocks rest
-  in
-  link_blocks program
-
-and function_hash name params =
-  let params = List.map (fun _ -> "address") params |> String.concat "," in  (* TODO *)
-  let input = Printf.sprintf "%s(%s)" (mangle_name name) params in
-  let hash = keccak256 input in
-  String.sub hash 0 4
-
-and keccak256 input =
-  let hash_function = Cryptokit.Hash.keccak 256 in
-  Cryptokit.hash_string hash_function input
+and compile_type = function
+  (* See: https://solidity.readthedocs.io/en/develop/abi-spec.html#types *)
+  | Clarity.Principal -> "address"
+  | Bool -> "bool"
+  | Int -> "int128"
+  | Uint -> "uint128"
+  | Buff len | String (len, _) -> Printf.sprintf "bytes%d" len
+  | type' ->
+    let type_name = Clarity.type_to_string type' in
+    let error = Printf.sprintf "unsupported public parameter type: %s" type_name in
+    failwith error
 
 and mangle_name = function
   | "*" -> "mul"
@@ -307,3 +286,39 @@ and lookup_symbol symbols symbol =
       else loop (index + 1) tl
   in
   loop 0 symbols
+
+and link_offsets program =
+  let rec loop pc = function
+    | [] -> []
+    | (_, body) :: rest ->
+      let next_pc = pc + EVM.opcodes_size body in
+      pc :: loop next_pc rest
+  in
+  loop 0 program
+
+and link_program program =
+  let block_offsets = link_offsets program in
+  let rec link_block = function
+    | [] -> []
+    | EVM.PUSH (1, block_id) :: (EVM.JUMP as jump) :: rest
+    | EVM.PUSH (1, block_id) :: (EVM.JUMPI as jump) :: rest ->
+      let block_id = String.get block_id 0 |> Char.code in
+      let block_pc = List.nth block_offsets block_id in
+      EVM.from_int block_pc :: jump :: link_block rest
+    | op :: rest -> op :: link_block rest
+  in
+  let rec link_blocks = function
+    | [] -> []
+    | (id, body) :: rest -> (id, link_block body) :: link_blocks rest
+  in
+  link_blocks program
+
+and function_hash name params =
+  let params = List.map compile_param params |> String.concat "," in
+  let input = Printf.sprintf "%s(%s)" (mangle_name name) params in
+  let hash = keccak256 input in
+  String.sub hash 0 4
+
+and keccak256 input =
+  let hash_function = Cryptokit.Hash.keccak 256 in
+  Cryptokit.hash_string hash_function input
