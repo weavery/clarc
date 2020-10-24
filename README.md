@@ -61,7 +61,7 @@ clarc --help
     (ok (var-get counter))))
 ```
 
-[`counter.clar`]: https://github.com/weavery/clarc/blob/master/etc/counter.clar
+[`counter.clar`]: https://github.com/weavery/clarc/blob/master/etc/examples/counter.clar
 
 #### `counter.opcode`
 
