@@ -51,8 +51,11 @@ and compile_var env index = function
   | Clarity.Constant _ ->
     unimplemented "define-constant"  (* TODO *)
   | DataVar (_name, _type', value) ->
-    compile_expression env value @ [EVM.from_int index; EVM.SSTORE]
-  | Map _ -> []  (* TODO: unimplemented "define-map" *)
+    let value = compile_expression env value in
+    value @ [EVM.from_int index; EVM.SSTORE]
+  | Map (_name, _, _) ->
+    let value = [EVM.zero] in  (* TODO: store the byte size of the value tuple? *)
+    value @ [EVM.from_int index; EVM.SSTORE]
   | _ -> unreachable ()
 
 and compile_dispatcher program =
@@ -71,9 +74,9 @@ and compile_dispatcher program =
 and compile_dispatcher_test index = function
   | Clarity.Constant _ | DataVar _ | Map _ -> unreachable ()
   | PrivateFunction _ -> []
-  | PublicFunction (name, _, _)
-  | PublicReadOnlyFunction (name, _, _) ->
-    let hash = function_hash name in
+  | PublicFunction (name, params, _)
+  | PublicReadOnlyFunction (name, params, _) ->
+    let hash = function_hash name params in
     let dest = 1 + index in
     [
       EVM.DUP 1;        (* b = top of stack *)
@@ -131,13 +134,13 @@ and compile_expression env = function
   | Err expr -> compile_expression env expr
 
   | VarGet var ->
-    let var_id = lookup_variable_storage env var in
-    [EVM.from_int var_id; EVM.SLOAD]  (* SLOAD key *)
+    let var_slot = lookup_variable_slot env var in
+    [EVM.from_int var_slot; EVM.SLOAD]  (* SLOAD key *)
 
   | VarSet (var, val') ->
-    let var_id = lookup_variable_storage env var in
+    let var_slot = lookup_variable_slot env var in
     let val' = compile_expression env val' in
-    val' @ [EVM.from_int var_id; EVM.SSTORE]  (* SSTORE key, value *)
+    val' @ [EVM.from_int var_slot; EVM.SSTORE]  (* SSTORE key, value *)
 
   | Add [a; b] ->
     let a = compile_expression env a in
@@ -166,13 +169,13 @@ and compile_expression env = function
     ]
 
   | FunctionCall ("map-set", [Identifier var; key; value]) ->  (* TODO *)
-    let _var_id = lookup_variable_storage env var in
+    let _ = lookup_variable_slot env var in
     let key = compile_expression env key in
     let value = compile_expression env value in
     value @ key @ [EVM.SSTORE]
 
   | FunctionCall ("map-get?", [Identifier var; TupleExpression [("key", _key)]]) ->  (* TODO *)
-    let _var_id = lookup_variable_storage env var in
+    let _ = lookup_variable_slot env var in
     let key = [EVM.CALLER] in  (* TODO *)
     key @ [EVM.SLOAD; EVM.DUP 1; EVM.ISZERO; EVM.NOT]
 
@@ -258,11 +261,15 @@ and link_program program =
   in
   link_blocks program
 
-and function_hash name =
-  let signature = Printf.sprintf "%s()" (mangle_name name) in  (* TODO *)
-  let hash_function = Cryptokit.Hash.keccak 256 in
-  let hash = Cryptokit.hash_string hash_function signature in
+and function_hash name params =
+  let params = List.map (fun _ -> "address") params |> String.concat "," in  (* TODO *)
+  let input = Printf.sprintf "%s(%s)" (mangle_name name) params in
+  let hash = keccak256 input in
   String.sub hash 0 4
+
+and keccak256 input =
+  let hash_function = Cryptokit.Hash.keccak 256 in
+  Cryptokit.hash_string hash_function input
 
 and mangle_name = function
   | "*" -> "mul"
@@ -282,7 +289,7 @@ and mangle_name = function
     let words = List.map String.capitalize_ascii words in
     String.uncapitalize_ascii (String.concat "" words)
 
-and lookup_variable_storage env symbol =
+and lookup_variable_slot env symbol =
   match lookup_symbol env.vars symbol with
   | None -> failwith (Printf.sprintf "unknown variable: %s" symbol)
   | Some index -> index
