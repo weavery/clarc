@@ -1,0 +1,40 @@
+[
+   {
+      "stateMutability" : "view",
+      "name" : "getValue",
+      "inputs" : [
+         {
+            "internalType" : "address",
+            "type" : "address",
+            "name" : "key"
+         }
+      ],
+      "type" : "function",
+      "outputs" : [
+         {
+            "internalType" : "int128",
+            "name" : "",
+            "type" : "int128"
+         }
+      ]
+   },
+   {
+      "outputs" : [
+         {
+            "internalType" : "bool",
+            "type" : "bool",
+            "name" : ""
+         }
+      ],
+      "stateMutability" : "nonpayable",
+      "name" : "setValue",
+      "inputs" : [
+         {
+            "name" : "key",
+            "type" : "address",
+            "internalType" : "address"
+         }
+      ],
+      "type" : "function"
+   }
+]

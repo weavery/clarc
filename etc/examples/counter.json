@@ -1,0 +1,41 @@
+[
+   {
+      "stateMutability" : "nonpayable",
+      "outputs" : [
+         {
+            "type" : "int128",
+            "name" : "",
+            "internalType" : "int128"
+         }
+      ],
+      "inputs" : [],
+      "name" : "decrement",
+      "type" : "function"
+   },
+   {
+      "stateMutability" : "view",
+      "outputs" : [
+         {
+            "internalType" : "int128",
+            "name" : "",
+            "type" : "int128"
+         }
+      ],
+      "name" : "getCounter",
+      "inputs" : [],
+      "type" : "function"
+   },
+   {
+      "type" : "function",
+      "inputs" : [],
+      "name" : "increment",
+      "outputs" : [
+         {
+            "internalType" : "int128",
+            "type" : "int128",
+            "name" : ""
+         }
+      ],
+      "stateMutability" : "nonpayable"
+   }
+]
