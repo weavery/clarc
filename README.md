@@ -40,7 +40,23 @@ clarc --help
 
 ## Examples
 
-### Counter Example
+### Supported Contracts
+
+The currently tested contracts, deployed to the public [Ropsten] testnet, are:
+
+| Contract ID | Contract Code | Contract Bytecode | Contract ABI |
+| :---------- | :------------ | :---------------- | :----------- |
+| [0x8a90b1e93020933295b3bd4ce2317062319351d4] | [`counter.clar`] | [`counter.bin`] | [`counter.json`] |
+| [0x2e2487c64b1420111e8d66d751f75f69515c5476] | [`kv-store.clar`] | [`kv-store.bin`] | [`kv-store.json`] |
+| [0x9a1b29fc432af1e37af03ed2fee00d742ff7372f] | [`panic.clar`] | [`panic.bin`] | [`panic.json`] |
+
+[MyEtherWallet] is the easiest way to interact with these deployed contracts.
+
+[0x8a90b1e93020933295b3bd4ce2317062319351d4]: https://ropsten.etherscan.io/address/0x8a90b1e93020933295b3bd4ce2317062319351d4
+[0x2e2487c64b1420111e8d66d751f75f69515c5476]: https://ropsten.etherscan.io/address/0x2e2487c64b1420111e8d66d751f75f69515c5476
+[0x9a1b29fc432af1e37af03ed2fee00d742ff7372f]: https://ropsten.etherscan.io/address/0x9a1b29fc432af1e37af03ed2fee00d742ff7372f
+
+### Example: Counter
 
 #### [`counter.clar`]
 
@@ -61,8 +77,6 @@ clarc --help
     (ok (var-get counter))))
 ```
 
-[`counter.clar`]: https://github.com/weavery/clarc/blob/master/etc/examples/counter.clar
-
 #### `counter.opcode`
 
 ```bash
@@ -78,7 +92,7 @@ SLOAD SUB PUSH1 0x00 SSTORE PUSH1 0x00 SLOAD PUSH1 0x00 MSTORE PUSH1 0x20
 PUSH1 0x00 RETURN STOP
 ```
 
-#### `counter.bin`
+#### [`counter.bin`]
 
 ```bash
 $ clarc counter.clar -t bytecode
@@ -225,6 +239,20 @@ an important evolution for the future of smart contracts.
 [Clarity.ml]:        https://github.com/weavery/clarity.ml
 [Ethereum]:          https://ethereum.org
 [IR]:                https://en.wikipedia.org/wiki/Intermediate_representation
+[MyEtherWallet]:     https://www.myetherwallet.com/interface/interact-with-contract
 [OCaml]:             https://ocaml.org
+[Ropsten]:           https://ropsten.etherscan.io
 [sponsoring]:        https://github.com/stacksgov/Stacks-Grants/issues/16
 [Stacks Foundation]: https://stacks.org
+
+[`counter.clar`]:    https://github.com/weavery/clarc/blob/master/etc/examples/counter.clar
+[`counter.bin`]:     https://gist.github.com/artob/1f08c37a55965ff486e6ca99f1ade00d
+[`counter.json`]:    https://github.com/weavery/clarc/blob/master/etc/examples/counter.json
+
+[`kv-store.clar`]:   https://github.com/weavery/clarc/blob/master/etc/examples/kv-store.clar
+[`kv-store.bin`]:    https://gist.github.com/artob/b0f176f52d6d538d7b195c2fb7f6058a
+[`kv-store.json`]:   https://github.com/weavery/clarc/blob/master/etc/examples/kv-store.json
+
+[`panic.clar`]:      https://github.com/weavery/clarc/blob/master/etc/examples/panic.clar
+[`panic.bin`]:       https://gist.github.com/artob/945397b444402f6bea7512993608b02c
+[`panic.json`]:      https://github.com/weavery/clarc/blob/master/etc/examples/panic.json
