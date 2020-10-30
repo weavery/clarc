@@ -18,14 +18,18 @@ occasion.*
 
 ## Installation
 
+### Binary Downloads
+
 We are working on building release binaries for Windows, macOS, and Linux.
 They will be available here later.
+
+### Source Code
 
 In the meantime, if you wish to try out Clarc, you will need to build it from
 source code yourself, which entails setting up an OCaml development
 environment.
 
-For the impatient and adventurous, reserve at least an hour of time and
+For the impatient and adventurous, reserve at least half an hour of time and
 [see further down](#development) in this document for the particulars.
 
 ## Usage
@@ -37,6 +41,35 @@ clarc --help
 ```
 
 ![Manpage](https://github.com/weavery/clarc/blob/master/etc/manpage.jpg)
+
+### Compiling to opcode
+
+To compile the Clarity [`counter.clar`] example contract to programmer-readable
+output, known as symbolic opcode, run:
+
+```bash
+clarc -t opcode counter.clar
+```
+
+The previous writes out the compiled program to standard output, which is
+helpful during development and debugging.
+
+### Compiling to bytecode
+
+To compile the Clarity [`counter.clar`] example contract to deployable
+bytecode, run:
+
+```bash
+clarc -t bytecode counter.clar
+```
+
+Alternatively, you can specify an output file name in the usual way, with the
+target type inferred from the output file extension (`.bin` for bytecode,
+in keeping with the Solidity compiler):
+
+```bash
+clarc -o counter.bin counter.clar
+```
 
 ## Examples
 
