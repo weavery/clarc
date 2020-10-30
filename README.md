@@ -20,16 +20,40 @@ occasion.*
 
 ### Binary Downloads
 
-We are working on building release binaries for Windows, macOS, and Linux.
-They will be available here later.
+The latest release binaries for macOS and Linux are available here:
+
+- [clarc-0.5.0-macos.tar.gz](https://github.com/weavery/clarc/releases/download/0.5.0/clarc-0.5.0-macos.tar.gz)
+
+- [clarc-0.5.0-linux.tar.gz](https://github.com/weavery/clarc/releases/download/0.5.0/clarc-0.5.0-linux.tar.gz)
+
+To install, just download and untar the archive and then copy the resulting
+binary to `/usr/local/bin`, as follows:
+
+#### macOS
+
+```bash
+wget https://github.com/weavery/clarc/releases/download/0.5.0/clarc-0.5.0-macos.tar.gz
+
+tar xf clarc-0.5.0-macos.tar.gz
+
+sudo install clarc-0.5.0-macos /usr/local/bin/clarc
+```
+
+#### Linux
+
+```bash
+wget https://github.com/weavery/clarc/releases/download/0.5.0/clarc-0.5.0-linux.tar.gz
+
+tar xf clarc-0.5.0-linux.tar.gz
+
+sudo install clarc-0.5.0-linux /usr/local/bin/clarc
+```
 
 ### Source Code
 
-In the meantime, if you wish to try out Clarc, you will need to build it from
-source code yourself, which entails setting up an OCaml development
-environment.
-
-For the impatient and adventurous, reserve at least half an hour of time and
+If you wish to try out the latest and greatest Clarc, you will need to build
+it from source code yourself, which entails setting up an [OCaml] development
+environment. Reserve at least half an hour of time and
 [see further down](#development) in this document for the particulars.
 
 ## Usage
