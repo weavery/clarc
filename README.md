@@ -71,6 +71,12 @@ in keeping with the Solidity compiler):
 clarc -o counter.bin counter.clar
 ```
 
+### Deploying the contract
+
+[MyEtherWallet] is the easiest way to deploy the generated contracts:
+
+![Deploy a Contract](https://github.com/weavery/clarc/blob/master/etc/mew-deploy.jpg)
+
 ## Examples
 
 ### Supported Contracts
