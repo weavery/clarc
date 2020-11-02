@@ -25,3 +25,12 @@ let target =
 let optimize =
   let doc = "Specify the optimization level to use." in
   Arg.(value & opt int 0 & info ["O"; "optimize"] ~docv:"LEVEL" ~doc)
+
+let features =
+  let feature_flag =
+    let parse = Feature.of_string in
+    let print ppf p = Feature.to_string p |> Format.fprintf ppf "%s" in
+    Arg.conv ~docv:"FLAG" (parse, print)
+  in
+  let doc = "Specify optional feature flags: `no-deploy'." in
+  Arg.(value & opt_all feature_flag [Feature.None] & info ["f"; "feature"] ~docv:"FLAG" ~doc)

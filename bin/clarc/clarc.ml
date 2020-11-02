@@ -6,7 +6,7 @@ let version = "0.5.0"  (* TODO: preprocess from VERSION *)
 
 exception Error of int * string * string
 
-let clarc verbose paths output target _optimize =
+let clarc verbose paths output target _optimize _features =
   let _fprintf = Format.fprintf in
 
   let eprintf = if Unix.isatty (Unix.descr_of_out_channel stderr)
@@ -82,7 +82,7 @@ let command =
     `P "$(tname) compiles Clarity contracts into Ethereum virtual machine (EVM) bytecode.";
     `S Manpage.s_bugs; `P "Report any bugs at <https://github.com/weavery/clarc/issues>." ]
   in
-  Term.(ret (const clarc $ Options.verbose $ Options.files $ Options.output $ Options.target $ Options.optimize)),
+  Term.(ret (const clarc $ Options.verbose $ Options.files $ Options.output $ Options.target $ Options.optimize $ Options.features)),
   Term.info "clarc" ~version ~doc ~exits:Term.default_exits ~man
 
 let () = Term.(exit @@ eval command)

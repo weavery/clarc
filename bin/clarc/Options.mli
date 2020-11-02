@@ -5,3 +5,4 @@ val files : string list Cmdliner.Term.t
 val output : string option Cmdliner.Term.t
 val target : Target.t Cmdliner.Term.t
 val optimize : int Cmdliner.Term.t
+val features : Feature.t list Cmdliner.Term.t
