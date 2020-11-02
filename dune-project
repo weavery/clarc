@@ -2,3 +2,4 @@
 (name clarc)
 (version 0.5.0)
 (using menhir 2.0)
+(cram enable)
