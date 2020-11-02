@@ -20,7 +20,7 @@ let clarc verbose paths output target _optimize features =
 
   let output_formatter = Format.formatter_of_out_channel output_channel in
 
-  let printf (format : ('a, Format.formatter, unit) format) : 'a =
+  let _printf (format : ('a, Format.formatter, unit) format) : 'a =
     if Unix.isatty (Unix.descr_of_out_channel output_channel)
     then
       let formatter' = Ocolor_format.make_formatter output_formatter in
@@ -48,7 +48,7 @@ let clarc verbose paths output target _optimize features =
     match target with
     | Target.Auto -> begin match guess_target output with
         | Some target -> process_program program target
-        | None -> printf "@[<v>%a@]@?" Clarity.print_program program
+        | None -> process_program program Bytecode
       end
     | Bytecode ->
       let (deployer, program) = Clar2EVM.compile_contract program ~features in
