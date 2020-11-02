@@ -27,6 +27,7 @@ let optimize =
   Arg.(value & opt int 0 & info ["O"; "optimize"] ~docv:"LEVEL" ~doc)
 
 let features =
+  let open Clar2EVM in
   let feature_flag =
     let parse = Feature.of_string in
     let print ppf p = Feature.to_string p |> Format.fprintf ppf "%s" in

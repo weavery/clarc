@@ -8,7 +8,8 @@ let unreachable () = failwith "unreachable"
 
 let unimplemented what = failwith (Printf.sprintf "%s not implemented yet" what)
 
-let rec compile_contract program =
+let rec compile_contract ?(features=[]) program =
+  let _ = features in  (* TODO *)
   let is_var = function
     | Clarity.Constant _ | DataVar _ | Map _ -> true
     | _ -> false
@@ -30,7 +31,11 @@ let rec compile_contract program =
   let dispatcher = compile_dispatcher funs in
   let program = compile_program globals funs in
   let payload = link_program (dispatcher @ program) in
-  let deployer = compile_deployer globals vars payload in
+  let deployer =
+    if List.memq Feature.NoDeploy features
+    then []
+    else compile_deployer globals vars payload
+  in
   (deployer, payload)
 
 and compile_deployer env vars payload =

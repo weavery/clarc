@@ -6,7 +6,7 @@ let version = "0.5.0"  (* TODO: preprocess from VERSION *)
 
 exception Error of int * string * string
 
-let clarc verbose paths output target _optimize _features =
+let clarc verbose paths output target _optimize features =
   let _fprintf = Format.fprintf in
 
   let eprintf = if Unix.isatty (Unix.descr_of_out_channel stderr)
@@ -51,12 +51,12 @@ let clarc verbose paths output target _optimize _features =
         | None -> printf "@[<v>%a@]@?" Clarity.print_program program
       end
     | Bytecode ->
-      let (deployer, program) = Clar2EVM.compile_contract program in
+      let (deployer, program) = Clar2EVM.compile_contract program ~features in
       let program = deployer @ program in
       let printf = Format.fprintf output_formatter in
       printf "@[<h>%a@]@." EVM.print_program_as_bytecode program
     | Opcode ->
-      let (deployer, program) = Clar2EVM.compile_contract program in
+      let (deployer, program) = Clar2EVM.compile_contract program ~features in
       let program = deployer @ program in
       let printf = Format.fprintf output_formatter in
       printf "@[<hov>%a@]@." EVM.print_program_as_opcode program
