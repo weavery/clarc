@@ -165,6 +165,26 @@ and compile_expression env = function
     let b = compile_expression env b in
     b @ a @ [EVM.DIV]   (* TODO: handle division by zero *)
 
+  | Ge (a, b) ->
+    let a = compile_expression env a in
+    let b = compile_expression env b in
+    b @ a @ [EVM.DUP 2; EVM.DUP 2; EVM.GT; EVM.SWAP 2; EVM.SWAP 1; EVM.EQ; EVM.OR]  (* TODO: signed vs unsigned *)
+
+  | Gt (a, b) ->
+    let a = compile_expression env a in
+    let b = compile_expression env b in
+    b @ a @ [EVM.GT]    (* TODO: signed vs unsigned *)
+
+  | Le (a, b) ->
+    let a = compile_expression env a in
+    let b = compile_expression env b in
+    b @ a @ [EVM.DUP 2; EVM.DUP 2; EVM.LT; EVM.SWAP 2; EVM.SWAP 1; EVM.EQ; EVM.OR]  (* TODO: signed vs unsigned *)
+
+  | Lt (a, b) ->
+    let a = compile_expression env a in
+    let b = compile_expression env b in
+    b @ a @ [EVM.LT]    (* TODO: signed vs unsigned *)
+
   | Mod (a, b) ->
     let a = compile_expression env a in
     let b = compile_expression env b in

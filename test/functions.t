@@ -21,13 +21,35 @@ div:
 
 ge:
 
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (>= 1 2))
+  > EOF
+  PUSH1 0x02 PUSH1 0x01 DUP2 DUP2 GT SWAP2 SWAP1 EQ OR PUSH1 0x00 MSTORE
+  PUSH1 0x20 PUSH1 0x00 RETURN STOP
+
 get:
 
 gt:
 
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (> 1 2))
+  > EOF
+  PUSH1 0x02 PUSH1 0x01 GT PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
+
 le:
 
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (<= 1 2))
+  > EOF
+  PUSH1 0x02 PUSH1 0x01 DUP2 DUP2 LT SWAP2 SWAP1 EQ OR PUSH1 0x00 MSTORE
+  PUSH1 0x20 PUSH1 0x00 RETURN STOP
+
 lt:
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (< 1 2))
+  > EOF
+  PUSH1 0x02 PUSH1 0x01 LT PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
 
 map-get?:
 
