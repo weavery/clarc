@@ -150,19 +150,15 @@ and compile_expression env = function
   | Ok expr -> compile_expression env expr
   | Err expr -> compile_expression env expr
 
-  | VarGet var ->
-    let var_slot = lookup_variable_slot env var in
-    [EVM.from_int var_slot; EVM.SLOAD]  (* SLOAD key *)
-
-  | VarSet (var, val') ->
-    let var_slot = lookup_variable_slot env var in
-    let val' = compile_expression env val' in
-    val' @ [EVM.from_int var_slot; EVM.SSTORE]  (* SSTORE key, value *)
-
   | Add [a; b] ->
     let a = compile_expression env a in
     let b = compile_expression env b in
     b @ a @ [EVM.ADD]   (* TODO: handle overflow *)
+
+  | And [a; b] ->
+    let a = compile_expression env a in
+    let b = compile_expression env b in
+    b @ a @ [EVM.AND]
 
   | Div [a; b] ->
     let a = compile_expression env a in
@@ -179,6 +175,15 @@ and compile_expression env = function
     let b = compile_expression env b in
     b @ a @ [EVM.MUL]   (* TODO: handle overflow *)
 
+  | Not x ->
+    let x = compile_expression env x in
+    x @ [EVM.ISZERO]
+
+  | Or [a; b] ->
+    let a = compile_expression env a in
+    let b = compile_expression env b in
+    b @ a @ [EVM.OR]
+
   | Pow (a, b) ->
     let a = compile_expression env a in
     let b = compile_expression env b in
@@ -194,6 +199,20 @@ and compile_expression env = function
     input @ compile_branch [EVM.DUP 1; EVM.ISZERO]
       [EVM.POP; EVM.zero; EVM.zero; EVM.REVERT]
       [EVM.SLOAD]
+
+  | VarGet var ->
+    let var_slot = lookup_variable_slot env var in
+    [EVM.from_int var_slot; EVM.SLOAD]  (* SLOAD key *)
+
+  | VarSet (var, val') ->
+    let var_slot = lookup_variable_slot env var in
+    let val' = compile_expression env val' in
+    val' @ [EVM.from_int var_slot; EVM.SSTORE]  (* SSTORE key, value *)
+
+  | Xor (a, b) ->
+    let a = compile_expression env a in
+    let b = compile_expression env b in
+    b @ a @ [EVM.XOR]
 
   | Keyword "tx-sender" -> [EVM.CALLER]
 

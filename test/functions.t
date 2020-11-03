@@ -7,6 +7,11 @@ add:
 
 and:
 
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (and true false))
+  > EOF
+  PUSH1 0x00 PUSH1 0x01 AND PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
+
 div:
 
   $ clarc -t opcode -f only-function=test <<EOF
@@ -54,7 +59,17 @@ mul:
 
 not:
 
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (not true))
+  > EOF
+  PUSH1 0x01 ISZERO PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
+
 or:
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (or true false))
+  > EOF
+  PUSH1 0x00 PUSH1 0x01 OR PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
 
 pow:
 
@@ -101,3 +116,8 @@ var-set:
   PUSH1 0x00 RETURN STOP
 
 xor:
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (xor 1 2))
+  > EOF
+  PUSH1 0x02 PUSH1 0x01 XOR PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
