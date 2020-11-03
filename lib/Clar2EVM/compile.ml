@@ -8,6 +8,8 @@ let unreachable () = failwith "unreachable"
 
 let unimplemented what = failwith (Printf.sprintf "%s not implemented yet" what)
 
+let unsupported what = failwith (Printf.sprintf "%s not supported" what)
+
 let rec compile_contract ?(features=[]) program =
   let only_f = function Feature.OnlyFunction fn -> Some fn | _ -> None in
   let only_function = List.find_map only_f features in
@@ -234,7 +236,12 @@ and compile_expression env = function
     let b = compile_expression env b in
     b @ a @ [EVM.XOR]
 
-  | Keyword "tx-sender" -> [EVM.CALLER]
+  | Keyword "block-height" -> [EVM.NUMBER]
+  | Keyword "burn-block-height" -> [EVM.NUMBER]
+  | Keyword "contract-caller" -> [EVM.CALLER]
+  | Keyword "is-in-regtest" ->  compile_literal (BoolLiteral false)
+  | Keyword "stx-liquid-supply" -> unsupported "stx-liquid-supply"
+  | Keyword "tx-sender" -> [EVM.ORIGIN]
 
   | FunctionCall ("get", [Identifier _; Identifier _]) ->  (* TODO *)
     [
