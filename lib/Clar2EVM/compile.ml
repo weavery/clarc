@@ -162,12 +162,32 @@ and compile_expression env = function
   | Add [a; b] ->
     let a = compile_expression env a in
     let b = compile_expression env b in
-    b @ a @ [EVM.ADD]   (* ADD a, b *)
+    b @ a @ [EVM.ADD]   (* TODO: handle overflow *)
+
+  | Div [a; b] ->
+    let a = compile_expression env a in
+    let b = compile_expression env b in
+    b @ a @ [EVM.DIV]   (* TODO: handle division by zero *)
+
+  | Mod (a, b) ->
+    let a = compile_expression env a in
+    let b = compile_expression env b in
+    b @ a @ [EVM.MOD]   (* TODO: handle division by zero *)
+
+  | Mul [a; b] ->
+    let a = compile_expression env a in
+    let b = compile_expression env b in
+    b @ a @ [EVM.MUL]   (* TODO: handle overflow *)
+
+  | Pow (a, b) ->
+    let a = compile_expression env a in
+    let b = compile_expression env b in
+    b @ a @ [EVM.EXP]   (* TODO: handle overflow *)
 
   | Sub [a; b] ->
     let a = compile_expression env a in
     let b = compile_expression env b in
-    b @ a @ [EVM.SUB]   (* SUB a, b *)
+    b @ a @ [EVM.SUB]   (* TODO: handle underflow *)
 
   | UnwrapPanic input ->
     let input = compile_expression env input in
