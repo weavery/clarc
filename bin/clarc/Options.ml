@@ -33,5 +33,5 @@ let features =
     let print ppf p = Feature.to_string p |> Format.fprintf ppf "%s" in
     Arg.conv ~docv:"FLAG" (parse, print)
   in
-  let doc = "Specify optional feature flags: `no-deploy'." in
+  let doc = "Specify optional feature flags: `no-deploy', `only-function='." in
   Arg.(value & opt_all feature_flag [Feature.None] & info ["f"; "feature"] ~docv:"FLAG" ~doc)

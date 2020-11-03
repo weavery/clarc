@@ -9,7 +9,13 @@ let unreachable () = failwith "unreachable"
 let unimplemented what = failwith (Printf.sprintf "%s not implemented yet" what)
 
 let rec compile_contract ?(features=[]) program =
-  let _ = features in  (* TODO *)
+  let only_f = function Feature.OnlyFunction fn -> Some fn | _ -> None in
+  let only_function = List.find_map only_f features in
+  let no_deploy =
+    match only_function with
+    | Some _ -> true
+    | None -> List.memq Feature.NoDeploy features
+  in
   let is_var = function
     | Clarity.Constant _ | DataVar _ | Map _ -> true
     | _ -> false
@@ -20,23 +26,23 @@ let rec compile_contract ?(features=[]) program =
     | Map (name, _, _)
     | PrivateFunction (name, _, _)
     | PublicFunction (name, _, _)
-    | PublicReadOnlyFunction (name, _, _) ->
-      name
+    | PublicReadOnlyFunction (name, _, _) -> name
   in
   let (vars, funs) = List.partition is_var program in
-  let globals =
-    { vars = List.map name_of vars;
-      funs = List.map name_of funs; }
-  in
-  let dispatcher = compile_dispatcher funs in
-  let program = compile_program globals funs in
-  let payload = link_program (dispatcher @ program) in
-  let deployer =
-    if List.memq Feature.NoDeploy features
-    then []
-    else compile_deployer globals vars payload
-  in
-  (deployer, payload)
+  match only_function with
+  | Some fn ->
+    let funs = funs |> List.filter (fun f -> fn = name_of f) in
+    let globals = { vars = List.map name_of vars; funs = List.map name_of funs; } in
+    let program = compile_program globals funs in
+    let payload = link_program program in
+    ([], payload)
+  | None ->
+    let globals = { vars = List.map name_of vars; funs = List.map name_of funs; } in
+    let dispatcher = compile_dispatcher funs in
+    let program = compile_program globals funs in
+    let payload = link_program (dispatcher @ program) in
+    let deployer = if no_deploy then [] else compile_deployer globals vars payload in
+    (deployer, payload)
 
 and compile_deployer env vars payload =
   let inits = List.concat (List.mapi (compile_var env) vars) in
