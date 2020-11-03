@@ -33,13 +33,13 @@ let rec compile_contract ?(features=[]) program =
   | Some fn ->
     let funs = funs |> List.filter (fun f -> fn = name_of f) in
     let globals = { vars = List.map name_of vars; funs = List.map name_of funs; } in
-    let program = compile_program globals funs in
+    let program = compile_program features globals funs in
     let payload = link_program program in
     ([], payload)
   | None ->
     let globals = { vars = List.map name_of vars; funs = List.map name_of funs; } in
     let dispatcher = compile_dispatcher funs in
-    let program = compile_program globals funs in
+    let program = compile_program features globals funs in
     let payload = link_program (dispatcher @ program) in
     let deployer = if no_deploy then [] else compile_deployer globals vars payload in
     (deployer, payload)
@@ -97,23 +97,29 @@ and compile_dispatcher_test index = function
       EVM.JUMPI;        (* JUMPI dest, cond *)
     ]
 
-and compile_program env program =
-  List.mapi (compile_definition env) program
+and compile_program features env program =
+  List.mapi (compile_definition features env) program
 
-and compile_definition env index = function
+and compile_definition features env index = function
   | Clarity.Constant _ | DataVar _ | Map _ -> unreachable ()
   | PrivateFunction func ->
-    compile_private_function env index func
+    compile_private_function features env index func
   | PublicFunction func
   | PublicReadOnlyFunction func ->
-    compile_public_function env index func
+    compile_public_function features env index func
 
-and compile_public_function env index (_, _, body) =
-  let prelude = [
-    EVM.JUMPDEST;       (* the contract dispatcher will jump here *)
-    EVM.POP;            (* clean up from the dispatcher logic *)
-    (* TODO: fetch function arguments *)
-  ] in
+and compile_public_function features env index (_, _, body) =
+  let only_f = function Feature.OnlyFunction fn -> Some fn | _ -> None in
+  let only_function = List.find_map only_f features in
+  let prelude =
+    match only_function with
+    | Some _ -> []
+    | None -> [
+        EVM.JUMPDEST;       (* the contract dispatcher will jump here *)
+        EVM.POP;            (* clean up from the dispatcher logic *)
+        (* TODO: fetch function arguments *)
+      ]
+  in
   let body = List.concat_map (compile_expression env) body in
   let postlude = [      (* return value expected on top of stack *)
     EVM.zero;           (* offset = memory address 0 *)
@@ -125,7 +131,7 @@ and compile_public_function env index (_, _, body) =
   ] in
   (1 + index, prelude @ body @ postlude)
 
-and compile_private_function env index (_, _, body) =
+and compile_private_function _features env index (_, _, body) =
   let prelude = [
     EVM.JUMPDEST;       (* the calling function will jump here, with the return PC on TOS *)
   ] in
