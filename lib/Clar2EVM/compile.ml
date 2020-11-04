@@ -251,6 +251,31 @@ and compile_expression env = function
       EVM.from_int 2; EVM.EXP; EVM.SWAP 1; EVM.DIV;  (* equivalent to EVM.SWAP 1; EVM.SHR *)
     ]
 
+  | FunctionCall ("keccak256", [value]) ->
+    begin match value with
+    | Literal ((BuffLiteral s) as value) ->
+      let len = String.length s in
+      let value = compile_literal value in
+      value @ [
+        EVM.zero;           (* offset = memory address 0 *)
+        EVM.MSTORE;         (* MSTORE offset, value *)
+        EVM.from_int len;   (* length = buff length *)
+        EVM.zero;           (* offset = memory address 0 *)
+        EVM.SHA3            (* SHA3 offset, length *)
+      ]
+    | Literal ((IntLiteral _) as value)
+    | Literal ((UintLiteral _) as value) ->
+      let value = compile_literal value in
+      value @ [
+        EVM.zero;           (* offset = memory address 0 *)
+        EVM.MSTORE;         (* MSTORE offset, value *)
+        EVM.from_int 16;    (* length = 128 bits *)
+        EVM.zero;           (* offset = memory address 0 *)
+        EVM.SHA3            (* SHA3 offset, length *)
+      ]
+    | _ -> unimplemented "keccak256"  (* TODO *)
+    end
+
   | FunctionCall ("map-set", [Identifier var; key; value]) ->  (* TODO *)
     let _ = lookup_variable_slot env var in
     let key = compile_expression env key in
