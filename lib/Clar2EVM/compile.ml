@@ -252,12 +252,10 @@ and compile_expression env = function
     ]
 
   | FunctionCall ("keccak256", [value]) ->
-    begin match value with
-    | Literal ((BuffLiteral _) as value)
-    | Literal ((IntLiteral _) as value)
-    | Literal ((UintLiteral _) as value) ->
-      let length = length_of_literal value in
-      let value = compile_literal value in
+    begin match type_of_expression value with
+    | Clarity.Buff _ | Int | Uint ->
+      let length = length_of_expression value in
+      let value = compile_expression env value in
       let offset = 0 in
       value @ [
         EVM.from_int offset;
@@ -266,7 +264,7 @@ and compile_expression env = function
         EVM.from_int offset;
         EVM.SHA3            (* SHA3 offset, length *)
       ]
-    | _ -> unimplemented "keccak256 for dynamic arguments"  (* TODO *)
+    | _ -> unsupported "keccak256 for arguments of this type"
     end
 
   | FunctionCall ("map-set", [Identifier var; key; value]) ->  (* TODO *)
@@ -435,11 +433,28 @@ and keccak256 input =
   let hash_function = Cryptokit.Hash.keccak 256 in
   Cryptokit.hash_string hash_function input
 
+and length_of_expression = function
+  | Literal lit -> length_of_literal lit
+  | _ -> unimplemented "length_of_expression"
+
 and length_of_literal = function
-  | NoneLiteral
+  | Clarity.NoneLiteral
   | BoolLiteral _
   | IntLiteral _
   | UintLiteral _
   | TupleLiteral _ -> 16
   | BuffLiteral s
   | StringLiteral s -> String.length s
+
+and type_of_expression = function
+  | Literal lit -> type_of_literal lit
+  | _ -> unimplemented "type_of_expression"
+
+and type_of_literal = function
+  | Clarity.NoneLiteral -> Clarity.Optional Clarity.Bool  (* TODO? *)
+  | BoolLiteral _ -> Bool
+  | IntLiteral _ -> Int
+  | UintLiteral _ -> Uint
+  | TupleLiteral kvs -> Tuple (List.map (fun (id, lit) -> (id, type_of_literal lit)) kvs)
+  | BuffLiteral s -> Buff (String.length s)
+  | StringLiteral s -> String (String.length s, Clarity.UTF8)
