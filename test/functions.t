@@ -1,3 +1,5 @@
+https://docs.blockstack.org/references/language-functions
+
 add:
 
   $ clarc -t opcode -f only-function=test <<EOF
@@ -5,33 +7,19 @@ add:
   > EOF
   PUSH1 0x07 PUSH1 0x06 ADD PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
 
-and:
+sub:
 
   $ clarc -t opcode -f only-function=test <<EOF
-  > (define-read-only (test) (and true false))
+  > (define-read-only (test) (- 6 7))
   > EOF
-  PUSH1 0x00 PUSH1 0x01 AND PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
+  PUSH1 0x07 PUSH1 0x06 SUB PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
 
-block-height:
+mul:
 
   $ clarc -t opcode -f only-function=test <<EOF
-  > (define-read-only (test) block-height)
+  > (define-read-only (test) (* 6 7))
   > EOF
-  NUMBER PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
-
-burn-block-height:
-
-  $ clarc -t opcode -f only-function=test <<EOF
-  > (define-read-only (test) burn-block-height)
-  > EOF
-  NUMBER PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
-
-contract-caller:
-
-  $ clarc -t opcode -f only-function=test <<EOF
-  > (define-read-only (test) contract-caller)
-  > EOF
-  CALLER PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
+  PUSH1 0x07 PUSH1 0x06 MUL PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
 
 div:
 
@@ -39,30 +27,6 @@ div:
   > (define-read-only (test) (/ 6 3))
   > EOF
   PUSH1 0x03 PUSH1 0x06 DIV PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
-
-ge:
-
-  $ clarc -t opcode -f only-function=test <<EOF
-  > (define-read-only (test) (>= 1 2))
-  > EOF
-  PUSH1 0x02 PUSH1 0x01 DUP2 DUP2 GT SWAP2 SWAP1 EQ OR PUSH1 0x00 MSTORE
-  PUSH1 0x20 PUSH1 0x00 RETURN STOP
-
-get:
-
-gt:
-
-  $ clarc -t opcode -f only-function=test <<EOF
-  > (define-read-only (test) (> 1 2))
-  > EOF
-  PUSH1 0x02 PUSH1 0x01 GT PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
-
-is-in-regtest:
-
-  $ clarc -t opcode -f only-function=test <<EOF
-  > (define-read-only (test) is-in-regtest)
-  > EOF
-  PUSH1 0x00 PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
 
 le:
 
@@ -79,6 +43,92 @@ lt:
   > EOF
   PUSH1 0x02 PUSH1 0x01 LT PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
 
+ge:
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (>= 1 2))
+  > EOF
+  PUSH1 0x02 PUSH1 0x01 DUP2 DUP2 GT SWAP2 SWAP1 EQ OR PUSH1 0x00 MSTORE
+  PUSH1 0x20 PUSH1 0x00 RETURN STOP
+
+gt:
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (> 1 2))
+  > EOF
+  PUSH1 0x02 PUSH1 0x01 GT PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
+
+and:
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (and true false))
+  > EOF
+  PUSH1 0x00 PUSH1 0x01 AND PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
+
+append:
+
+as-contract:
+
+ax-max-len?:
+
+asserts!:
+
+at-block:
+
+begin:
+
+concat:
+
+contract-call?:
+
+contract-of:
+
+default-to:
+
+err:
+
+filter:
+
+fold:
+
+ft-get-balance:
+
+ft-mint?:
+
+ft-transfer?:
+
+get:
+
+get-block-info?:
+
+hash160:
+
+if:
+
+impl-trait:
+
+is-eq:
+
+is-err:
+
+is-none:
+
+is-ok:
+
+is-some:
+
+keccak256:
+
+len:
+
+let:
+
+list:
+
+map:
+
+map-delete:
+
 map-get?:
 
   $ clarc -t opcode -f only-function=test <<EOF
@@ -88,6 +138,8 @@ map-get?:
   > EOF
   CALLER SLOAD DUP1 ISZERO NOT PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN
   STOP
+
+map-insert:
 
 map-set:
 
@@ -100,12 +152,11 @@ mod:
   > EOF
   PUSH1 0x02 PUSH1 0x05 MOD PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
 
-mul:
+nft-get-owner?:
 
-  $ clarc -t opcode -f only-function=test <<EOF
-  > (define-read-only (test) (* 6 7))
-  > EOF
-  PUSH1 0x07 PUSH1 0x06 MUL PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
+nft-mint?:
+
+nft-transfer?:
 
 not:
 
@@ -113,6 +164,8 @@ not:
   > (define-read-only (test) (not true))
   > EOF
   PUSH1 0x01 ISZERO PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
+
+ok:
 
 or:
 
@@ -128,31 +181,47 @@ pow:
   > EOF
   PUSH1 0x03 PUSH1 0x02 EXP PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
 
-stx-liquid-supply:
+principal-of?:
 
-  $ clarc -t opcode -f only-function=test <<EOF
-  > (define-read-only (test) stx-liquid-supply)
-  > EOF
-  clarc: internal error, uncaught exception:
-         Failure("stx-liquid-supply not supported")
-         
-  [125]
+print:
 
-sub:
+secp256k1-recover?:
 
-  $ clarc -t opcode -f only-function=test <<EOF
-  > (define-read-only (test) (- 6 7))
-  > EOF
-  PUSH1 0x07 PUSH1 0x06 SUB PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
+secp256k1-verify:
 
-tx-sender:
+sha256:
 
-  $ clarc -t opcode -f only-function=test <<EOF
-  > (define-read-only (test) tx-sender)
-  > EOF
-  ORIGIN PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
+sha512:
+
+sha512/256:
+
+some:
+
+sqrti:
+
+stx-burn?:
+
+stx-get-balance:
+
+stx-transfer?:
+
+to-int:
+
+to-uint:
+
+try!:
+
+tuple:
+
+unwrap-err-panic:
+
+unwrap-err!:
 
 unwrap-panic:
+
+unwrap!:
+
+use-trait:
 
 var-get:
 
