@@ -300,10 +300,20 @@ and compile_relative_offset offset =
 and compile_literal = function
   | NoneLiteral -> [EVM.zero]
   | BoolLiteral b -> [EVM.from_int (if b then 1 else 0)]
-  | IntLiteral z -> [EVM.from_big_int z]
-  | UintLiteral z -> [EVM.from_big_int z]
-  | BuffLiteral _ -> unimplemented "buff literals"  (* TODO *)
-  | StringLiteral _ -> unimplemented "string literals"  (* TODO *)
+  | IntLiteral z ->
+    if (Big_int.num_bits_big_int z) <= 127 then [EVM.from_big_int z]
+    else unsupported "int underflow/overflow"
+  | UintLiteral z ->
+    if (Big_int.num_bits_big_int z) <= 128 then [EVM.from_big_int z]
+    else unsupported "uint overflow"
+  | BuffLiteral s ->
+    if (String.length s) <= 32 then [EVM.from_string s]
+    else unimplemented "large buff literals (32+ bytes)"  (* TODO *)
+  | StringLiteral s ->
+    let len = String.length s in
+    if len = 0 then [EVM.zero]
+    else if len <= 32 then [EVM.from_string s]
+    else unimplemented "large string literals (32+ bytes)"  (* TODO *)
   | TupleLiteral kvs -> compile_tuple_literal kvs
 
 and compile_tuple_literal = function
@@ -312,6 +322,7 @@ and compile_tuple_literal = function
   | [(_, (IntLiteral _ as lit))]
   | [(_, (UintLiteral _ as lit))] -> compile_literal lit
   | [(_, IntLiteral a); (_, IntLiteral b)] -> compile_packed_word a b
+  | [(_, UintLiteral _a); (_, UintLiteral _b)] -> unimplemented "packed uint tuple literals"  (* TODO *)
   | _ -> unimplemented "arbitrary tuple literals"  (* TODO *)
 
 and compile_packed_word hi lo =

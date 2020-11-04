@@ -1,5 +1,8 @@
 (* This is free and unencumbered software released into the public domain. *)
 
+let from_string s =
+  PUSH (String.length s, s)
+
 let rec from_big_int z =
   match Big_int.int_of_big_int_opt z with
   | Some z -> from_int z
