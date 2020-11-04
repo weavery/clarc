@@ -120,16 +120,16 @@ is-some:
 keccak256:
 
   $ clarc -t opcode -f only-function=test <<EOF
-  > (define-read-only (test) (keccak256 0))
-  > EOF
-  PUSH1 0x00 PUSH1 0x00 MSTORE PUSH1 0x10 PUSH1 0x00 SHA3 PUSH1 0x00 MSTORE
-  PUSH1 0x20 PUSH1 0x00 RETURN STOP
-
-  $ clarc -t opcode -f only-function=test <<EOF
   > (define-read-only (test) (keccak256 0x01020304))
   > EOF
   PUSH4 0x01020304 PUSH1 0x00 MSTORE PUSH1 0x04 PUSH1 0x00 SHA3 PUSH1 0x00
   MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (keccak256 0))
+  > EOF
+  PUSH1 0x00 PUSH1 0x00 MSTORE PUSH1 0x10 PUSH1 0x00 SHA3 PUSH1 0x00 MSTORE
+  PUSH1 0x20 PUSH1 0x00 RETURN STOP
 
 len:
 
