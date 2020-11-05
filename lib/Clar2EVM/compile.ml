@@ -290,6 +290,16 @@ and compile_expression env = function
     | t -> unsupported (Printf.sprintf "(%s %s)" "sha256" (Clarity.type_to_string t))
     end
 
+  | FunctionCall ("sha512", [value]) ->
+    begin match type_of_expression value with
+    | t -> unimplemented (Printf.sprintf "(%s %s)" "sha512" (Clarity.type_to_string t))  (* TODO *)
+    end
+
+  | FunctionCall ("sha512/256", [value]) ->
+    begin match type_of_expression value with
+    | t -> unimplemented (Printf.sprintf "(%s %s)" "sha512/256" (Clarity.type_to_string t))  (* TODO *)
+    end
+
   | FunctionCall (name, _args) ->
     let block_id = lookup_function_block env name in
     let call_sequence = [

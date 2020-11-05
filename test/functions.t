@@ -233,7 +233,23 @@ sha256:
 
 sha512:
 
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (sha512 0))
+  > EOF
+  clarc: internal error, uncaught exception:
+         Failure("(sha512 int) not implemented yet")
+         
+  [125]
+
 sha512/256:
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (sha512/256 0))
+  > EOF
+  clarc: internal error, uncaught exception:
+         Failure("(sha512/256 int) not implemented yet")
+         
+  [125]
 
 some:
 
