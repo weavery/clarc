@@ -457,14 +457,9 @@ and link_program program =
   link_blocks program
 
 and function_hash name params =
-  let params = List.map compile_param params |> String.concat "," in
-  let input = Printf.sprintf "%s(%s)" (mangle_name name) params in
-  let hash = keccak256 input in
-  String.sub hash 0 4
-
-and keccak256 input =
-  let hash_function = Cryptokit.Hash.keccak 256 in
-  Cryptokit.hash_string hash_function input
+  let name = mangle_name name in
+  let params = List.map compile_param params in
+  EVM.ABI.encode_function name params
 
 and size_of_expression expr =
   size_of_type (type_of_expression expr)

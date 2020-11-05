@@ -1,6 +1,7 @@
 (* This is free and unencumbered software released into the public domain. *)
 
 #include "opcodes.ml"
+#include "abi.mli"
 #include "construct.mli"
 #include "metrics.mli"
 #include "decode.mli"

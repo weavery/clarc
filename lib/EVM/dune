@@ -4,6 +4,8 @@
  (wrapped false)
  (preprocess (action (run %{bin:cppo} -V OCAML:%{ocaml_version} %{input-file})))
  (preprocessor_deps
+  abi.ml
+  abi.mli
   construct.ml
   construct.mli
   decode.ml
@@ -15,4 +17,4 @@
   opcodes.ml
   print.ml
   print.mli)
- (libraries num))
+ (libraries cryptokit num))

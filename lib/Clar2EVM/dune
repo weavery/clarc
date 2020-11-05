@@ -12,4 +12,4 @@
   typecheck.mli
   utility.ml
   utility.mli)
- (libraries EVM clarity-lang cryptokit str))
+ (libraries EVM clarity-lang str))
