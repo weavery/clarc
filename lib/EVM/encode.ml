@@ -100,7 +100,7 @@ and encode_opcode = function
   | MSIZE -> 0x59
   | GAS -> 0x5A
   | JUMPDEST -> 0x5B
-  | PUSH (0, _) -> failwith "unreachable"
+  | PUSH (0, _) -> unreachable ()
   | PUSH (n, _) -> 0x60 + n - 1
   | DUP n -> 0x80 + n - 1
   | SWAP n -> 0x90 + n - 1

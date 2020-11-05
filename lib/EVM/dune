@@ -16,5 +16,7 @@
   metrics.mli
   opcodes.ml
   print.ml
-  print.mli)
+  print.mli
+  utility.ml
+  utility.mli)
  (libraries cryptokit num))

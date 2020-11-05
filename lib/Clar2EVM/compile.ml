@@ -240,9 +240,9 @@ and compile_expression env = function
   | FunctionCall ("get", [Identifier _; Identifier _]) ->  (* TODO *)
     [
       EVM.from_int 0x80;                 (* 128 bits *)
-      EVM.from_int 2; EVM.EXP; EVM.MUL;  (* equivalent to EVM.SHL *)
+      EVM.two; EVM.EXP; EVM.MUL;         (* equivalent to EVM.SHL *)
       EVM.from_int 0x80;                 (* 128 bits *)
-      EVM.from_int 2; EVM.EXP; EVM.SWAP 1; EVM.DIV;  (* equivalent to EVM.SWAP 1; EVM.SHR *)
+      EVM.two; EVM.EXP; EVM.SWAP 1; EVM.DIV;  (* equivalent to EVM.SWAP 1; EVM.SHR *)
     ]
 
   | FunctionCall ("hash160", [value]) ->
@@ -376,7 +376,7 @@ and compile_tuple_literal = function
 
 and compile_packed_word hi lo =
   (* [EVM.from_big_int hi; EVM.from_int 0x80; EVM.SHL; EVM.from_big_int lo; EVM.OR] *)
-  [EVM.from_big_int hi; EVM.from_int 0x80; EVM.from_int 2; EVM.EXP; EVM.MUL; EVM.from_big_int lo; EVM.OR]
+  [EVM.from_big_int hi; EVM.from_int 0x80; EVM.two; EVM.EXP; EVM.MUL; EVM.from_big_int lo; EVM.OR]
 
 and compile_param (_, type') =
   compile_type type'

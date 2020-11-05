@@ -15,8 +15,3 @@ let unsupported what =
     else Printf.sprintf "%s not supported" what
   in
   failwith message
-
-let rec last = function
-  | [] -> None
-  | [x] -> Some x
-  | _ :: tl -> last tl

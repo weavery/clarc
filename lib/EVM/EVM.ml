@@ -1,5 +1,6 @@
 (* This is free and unencumbered software released into the public domain. *)
 
+#include "utility.ml"
 #include "opcodes.ml"
 #include "abi.ml"
 #include "construct.ml"
