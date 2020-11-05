@@ -4,12 +4,6 @@ type context =
   { vars: string list;
     funs: string list; }
 
-let unreachable () = failwith "unreachable"
-
-let unimplemented what = failwith (Printf.sprintf "%s not implemented yet" what)
-
-let unsupported what = failwith (Printf.sprintf "%s not supported" what)
-
 let rec compile_contract ?(features=[]) program =
   let only_f = function Feature.OnlyFunction fn -> Some fn | _ -> None in
   let only_function = List.find_map only_f features in
@@ -239,7 +233,7 @@ and compile_expression env = function
   | Keyword "block-height" -> [EVM.NUMBER]
   | Keyword "burn-block-height" -> [EVM.NUMBER]
   | Keyword "contract-caller" -> [EVM.CALLER]
-  | Keyword "is-in-regtest" ->  compile_literal (BoolLiteral false)
+  | Keyword "is-in-regtest" -> compile_literal (BoolLiteral false)
   | Keyword "stx-liquid-supply" -> unsupported "stx-liquid-supply"
   | Keyword "tx-sender" -> [EVM.ORIGIN]
 
@@ -254,7 +248,7 @@ and compile_expression env = function
   | FunctionCall ("keccak256", [value]) ->
     begin match type_of_expression value with
     | Clarity.Buff _ | Int | Uint ->
-      let length = length_of_expression value in
+      let length = size_of_expression value in
       let value = compile_expression env value in
       let offset = 0 in
       value @ [
@@ -433,28 +427,15 @@ and keccak256 input =
   let hash_function = Cryptokit.Hash.keccak 256 in
   Cryptokit.hash_string hash_function input
 
-and length_of_expression = function
-  | Literal lit -> length_of_literal lit
-  | _ -> unimplemented "length_of_expression"
+and size_of_expression expr =
+  size_of_type (type_of_expression expr)
 
-and length_of_literal = function
-  | Clarity.NoneLiteral
-  | BoolLiteral _
-  | IntLiteral _
-  | UintLiteral _
-  | TupleLiteral _ -> 16
-  | BuffLiteral s
-  | StringLiteral s -> String.length s
-
-and type_of_expression = function
-  | Literal lit -> type_of_literal lit
-  | _ -> unimplemented "type_of_expression"
-
-and type_of_literal = function
-  | Clarity.NoneLiteral -> Clarity.Optional Clarity.Bool  (* TODO? *)
-  | BoolLiteral _ -> Bool
-  | IntLiteral _ -> Int
-  | UintLiteral _ -> Uint
-  | TupleLiteral kvs -> Tuple (List.map (fun (id, lit) -> (id, type_of_literal lit)) kvs)
-  | BuffLiteral s -> Buff (String.length s)
-  | StringLiteral s -> String (String.length s, Clarity.UTF8)
+and size_of_type = function
+  | Clarity.Principal -> 20
+  | Bool | Int | Uint -> 16
+  | Optional t -> size_of_type t
+  | Response (t, _) -> size_of_type t
+  | Buff n -> n
+  | String (n, _) -> n
+  | List _ -> unimplemented "size_of_type for lists"
+  | Tuple _ -> unimplemented "size_of_type for tuples"

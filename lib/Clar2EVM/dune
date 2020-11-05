@@ -7,5 +7,9 @@
   compile.ml
   compile.mli
   features.ml
-  features.mli)
+  features.mli
+  typecheck.ml
+  typecheck.mli
+  utility.ml
+  utility.mli)
  (libraries EVM clarity-lang cryptokit str))
