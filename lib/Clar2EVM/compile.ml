@@ -245,6 +245,12 @@ and compile_expression env = function
       EVM.from_int 2; EVM.EXP; EVM.SWAP 1; EVM.DIV;  (* equivalent to EVM.SWAP 1; EVM.SHR *)
     ]
 
+  | FunctionCall ("hash160", [value]) ->
+    begin match type_of_expression value with
+    | Clarity.Buff _ | Int | Uint -> compile_precompile_call env 0x03 value
+    | t -> unsupported (Printf.sprintf "(%s %s)" "hash160" (Clarity.type_to_string t))
+    end
+
   | FunctionCall ("keccak256", [value]) ->
     begin match type_of_expression value with
     | Clarity.Buff _ | Int | Uint ->
@@ -258,8 +264,8 @@ and compile_expression env = function
         EVM.from_int offset;
         EVM.SHA3            (* SHA3 offset, length *)
       ]
-    | _ -> unsupported "keccak256 for arguments of this type"
-    end
+    | t -> unsupported (Printf.sprintf "(%s %s)" "keccak256" (Clarity.type_to_string t))
+  end
 
   | FunctionCall ("map-set", [Identifier var; key; value]) ->  (* TODO *)
     let _ = lookup_variable_slot env var in
@@ -278,6 +284,12 @@ and compile_expression env = function
     let none_block = compile_expression env none_branch in
     input_value @ compile_branch [EVM.ISZERO] ([EVM.POP] @ none_block) some_block
 
+  | FunctionCall ("sha256", [value]) ->
+    begin match type_of_expression value with
+    | Clarity.Buff _ | Int | Uint -> compile_precompile_call env 0x02 value
+    | t -> unsupported (Printf.sprintf "(%s %s)" "sha256" (Clarity.type_to_string t))
+    end
+
   | FunctionCall (name, _args) ->
     let block_id = lookup_function_block env name in
     let call_sequence = [
@@ -290,6 +302,23 @@ and compile_expression env = function
     (compile_relative_offset call_length) @ call_sequence @ [EVM.JUMPDEST]
 
   | _ -> unimplemented "arbitrary expressions"  (* TODO *)
+
+and compile_precompile_call env addr value =
+  let length = size_of_expression value in
+  let value = compile_expression env value in
+  let offset = 0 in
+  value @ [
+    EVM.from_int offset;
+    EVM.MSTORE;           (* MSTORE offset, value *)
+    EVM.from_int 32;      (* retLength  *)
+    EVM.from_int offset;  (* retOffset *)
+    EVM.from_int length;  (* argsLength *)
+    EVM.from_int offset;  (* argsOffset *)
+    EVM.from_int addr;    (* addr *)
+    EVM.GAS;              (* gas *)
+    EVM.STATICCALL;       (* STATICCALL gas, addr, argsOffset, argsLength, retOffset, retLength *)
+    EVM.POP
+  ]
 
 and compile_branch condition then_block else_block =
   let else_block = [EVM.JUMPDEST] @ else_block in
@@ -431,7 +460,8 @@ and size_of_expression expr =
   size_of_type (type_of_expression expr)
 
 and size_of_type = function
-  | Clarity.Principal -> 20
+  | Clarity.Unit -> 0
+  | Principal -> 20
   | Bool | Int | Uint -> 16
   | Optional t -> size_of_type t
   | Response (t, _) -> size_of_type t

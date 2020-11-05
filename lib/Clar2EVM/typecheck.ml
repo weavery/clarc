@@ -49,7 +49,7 @@ let rec type_of_expression = function
   | FunctionCall (id, _) -> unimplemented (Printf.sprintf "type_of_expression for %s" id)
 
 and type_of_literal = function
-  | Clarity.NoneLiteral -> Clarity.Optional Clarity.Bool  (* TODO? *)
+  | Clarity.NoneLiteral -> Clarity.Optional Unit
   | BoolLiteral _ -> Bool
   | IntLiteral _ -> Int
   | UintLiteral _ -> Uint

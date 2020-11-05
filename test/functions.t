@@ -103,6 +103,13 @@ get-block-info?:
 
 hash160:
 
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (hash160 0))
+  > EOF
+  PUSH1 0x00 PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 PUSH1 0x10 PUSH1 0x00
+  PUSH1 0x03 GAS STATICCALL POP PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN
+  STOP
+
 if:
 
 impl-trait:
@@ -136,6 +143,14 @@ keccak256:
   > EOF
   PUSH1 0x02 PUSH1 0x01 ADD PUSH1 0x00 MSTORE PUSH1 0x10 PUSH1 0x00 SHA3
   PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (keccak256 true))
+  > EOF
+  clarc: internal error, uncaught exception:
+         Failure("(keccak256 bool) not supported")
+         
+  [125]
 
 len:
 
@@ -208,6 +223,13 @@ secp256k1-recover?:
 secp256k1-verify:
 
 sha256:
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (sha256 0))
+  > EOF
+  PUSH1 0x00 PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 PUSH1 0x10 PUSH1 0x00
+  PUSH1 0x02 GAS STATICCALL POP PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN
+  STOP
 
 sha512:
 
