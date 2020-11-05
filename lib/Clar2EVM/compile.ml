@@ -459,7 +459,7 @@ and link_program program =
 and function_hash name params =
   let name = mangle_name name in
   let params = List.map compile_param params in
-  EVM.ABI.encode_function name params
+  EVM.ABI.encode_function_prototype name params
 
 and size_of_expression expr =
   size_of_type (type_of_expression expr)
