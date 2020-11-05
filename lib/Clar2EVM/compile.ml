@@ -383,11 +383,11 @@ and compile_param (_, type') =
 
 and compile_type = function
   (* See: https://solidity.readthedocs.io/en/develop/abi-spec.html#types *)
-  | Clarity.Principal -> "address"
-  | Bool -> "bool"
-  | Int -> "int128"
-  | Uint -> "uint128"
-  | Buff len | String (len, _) -> Printf.sprintf "bytes%d" len
+  | Clarity.Principal -> EVM.ABI.Address
+  | Bool -> Bool
+  | Int -> Int128
+  | Uint -> Uint128
+  | Buff len | String (len, _) -> BytesN len
   | type' ->
     let type_name = Clarity.type_to_string type' in
     let error = Printf.sprintf "unsupported public parameter type: %s" type_name in
