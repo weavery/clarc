@@ -1,8 +1,12 @@
 (* This is free and unencumbered software released into the public domain. *)
 
-type addr = int
+type addr = string
 
 type ptr = int
+
+val addr_of_int : int -> addr
+
+val ptr_of_int : int -> ptr
 
 val zero : opcode
 
@@ -21,6 +25,8 @@ val from_string : string -> opcode
 val from_addr : addr -> opcode
 
 val from_ptr : ptr -> opcode
+
+val bytes32 : string -> opcode
 
 val add : opcode list -> opcode list -> opcode list
 
@@ -51,6 +57,8 @@ val mload : ptr -> opcode list
 val mod' : opcode list -> opcode list -> opcode list
 
 val mstore : ptr -> opcode list -> opcode list
+
+val mstore_bytes : ptr -> string -> opcode list
 
 val mul : opcode list -> opcode list -> opcode list
 
