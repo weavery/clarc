@@ -4,6 +4,12 @@ type context =
   { vars: string list;
     funs: string list; }
 
+let unimplemented_function name type' =
+  unimplemented (Printf.sprintf "(%s %s)" name (Clarity.type_to_string type'))
+
+let unsupported_function name type' =
+  unsupported (Printf.sprintf "(%s %s)" name (Clarity.type_to_string type'))
+
 let rec compile_contract ?(features=[]) program =
   let only_f = function Feature.OnlyFunction fn -> Some fn | _ -> None in
   let only_function = List.find_map only_f features in
@@ -249,7 +255,7 @@ and compile_expression env = function
       let input_size = size_of_expression value in
       let input_mstore = compile_mstore_of_expression env value in
       input_mstore @ EVM.staticcall_hash160 0 input_size 0 @ EVM.pop
-    | t -> unsupported (Printf.sprintf "(%s %s)" "hash160" (Clarity.type_to_string t))
+    | t -> unsupported_function "hash160" t
     end
 
   | FunctionCall ("keccak256", [value]) ->
@@ -258,7 +264,7 @@ and compile_expression env = function
       let input_size = size_of_expression value in
       let value = compile_expression env value in
       EVM.mstore 0 value @ EVM.sha3 0 input_size
-    | t -> unsupported (Printf.sprintf "(%s %s)" "keccak256" (Clarity.type_to_string t))
+    | t -> unsupported_function "keccak256" t
   end
 
   | FunctionCall ("map-set", [Identifier var; key; value]) ->  (* TODO *)
@@ -278,23 +284,29 @@ and compile_expression env = function
     let none_block = compile_expression env none_branch in
     input_value @ compile_branch [EVM.ISZERO] (EVM.pop @ none_block) some_block
 
+  | FunctionCall ("print", [expr]) ->
+    begin match expr with
+    | Literal value -> compile_static_print_call value
+    | _ -> unimplemented "print for non-literals"  (* TODO *)
+    end
+
   | FunctionCall ("sha256", [value]) ->
     begin match type_of_expression value with
     | Clarity.Buff _ | Int | Uint ->
       let input_size = size_of_expression value in
       let input_mstore = compile_mstore_of_expression env value in
       input_mstore @ EVM.staticcall_sha256 0 input_size 0 @ EVM.pop
-    | t -> unsupported (Printf.sprintf "(%s %s)" "sha256" (Clarity.type_to_string t))
-    end
+    | t -> unsupported_function "sha256" t
+  end
 
   | FunctionCall ("sha512", [value]) ->
     begin match type_of_expression value with
-    | t -> unimplemented (Printf.sprintf "(%s %s)" "sha512" (Clarity.type_to_string t))  (* TODO *)
+    | t -> unimplemented_function "sha512" t  (* TODO *)
     end
 
   | FunctionCall ("sha512/256", [value]) ->
     begin match type_of_expression value with
-    | t -> unimplemented (Printf.sprintf "(%s %s)" "sha512/256" (Clarity.type_to_string t))  (* TODO *)
+    | t -> unimplemented_function "sha512/256" t  (* TODO *)
     end
 
   | FunctionCall (name, _args) ->
@@ -467,5 +479,5 @@ and size_of_type = function
   | Response (t, _) -> size_of_type t
   | Buff n -> n
   | String (n, _) -> n
-  | List _ -> unimplemented "size_of_type for lists"
-  | Tuple _ -> unimplemented "size_of_type for tuples"
+  | List _ -> unimplemented "size_of_type for lists"  (* TODO *)
+  | Tuple _ -> unimplemented "size_of_type for tuples"  (* TODO *)
