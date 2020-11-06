@@ -59,10 +59,10 @@ and compile_var env index = function
     unimplemented "define-constant"  (* TODO *)
   | DataVar (_name, _type', value) ->
     let value = compile_expression env value in
-    value @ [EVM.from_int index; EVM.SSTORE]
+    EVM.sstore index value
   | Map (_name, _, _) ->
     let value = [EVM.zero] in  (* TODO: store the byte size of the value tuple? *)
-    value @ [EVM.from_int index; EVM.SSTORE]
+    EVM.sstore index value
   | _ -> unreachable ()
 
 and compile_dispatcher program =
@@ -75,7 +75,7 @@ and compile_dispatcher program =
     EVM.DIV;            (* DIV a, b *)
   ] in
   let tests = List.concat (List.mapi compile_dispatcher_test program) in
-  let postlude = [EVM.STOP] in
+  let postlude = EVM.stop in
   [(0, prelude @ tests @ postlude)]
 
 and compile_dispatcher_test index = function
@@ -128,15 +128,13 @@ and compile_public_function features env index (_, _, body) =
   (1 + index, prelude @ body @ postlude)
 
 and compile_private_function _features env index (_, _, body) =
-  let prelude = [
-    EVM.JUMPDEST;       (* the calling function will jump here, with the return PC on TOS *)
-  ] in
+  let prelude = EVM.jumpdest in  (* the calling function will jump here, with the return PC on TOS *)
   let body = List.concat_map (compile_expression env) body in
   let postlude = [      (* return value expected on top of stack *)
     EVM.SWAP 1;         (* destination, result -- result, destination *)
     EVM.JUMP;           (* JUMP destination *)
-    EVM.STOP;           (* redundant, but a good marker for EOF *)
-  ] in
+  ] @ EVM.stop          (* redundant, but a good marker for EOF *)
+  in
   (1 + index, prelude @ body @ postlude)
 
 and compile_expression env = function
@@ -149,66 +147,66 @@ and compile_expression env = function
   | Add [a; b] ->
     let a = compile_expression env a in
     let b = compile_expression env b in
-    b @ a @ [EVM.ADD]   (* TODO: handle overflow *)
+    EVM.add a b  (* TODO: handle overflow *)
 
   | And [a; b] ->
     let a = compile_expression env a in
     let b = compile_expression env b in
-    b @ a @ [EVM.AND]
+    EVM.and' a b
 
   | Div [a; b] ->
     let a = compile_expression env a in
     let b = compile_expression env b in
-    b @ a @ [EVM.DIV]   (* TODO: handle division by zero *)
+    EVM.div a b  (* TODO: handle division by zero *)
 
   | Ge (a, b) ->
     let a = compile_expression env a in
     let b = compile_expression env b in
-    b @ a @ [EVM.DUP 2; EVM.DUP 2; EVM.GT; EVM.SWAP 2; EVM.SWAP 1; EVM.EQ; EVM.OR]  (* TODO: signed vs unsigned *)
+    EVM.ge a b  (* TODO: signed vs unsigned *)
 
   | Gt (a, b) ->
     let a = compile_expression env a in
     let b = compile_expression env b in
-    b @ a @ [EVM.GT]    (* TODO: signed vs unsigned *)
+    EVM.gt a b  (* TODO: signed vs unsigned *)
 
   | Le (a, b) ->
     let a = compile_expression env a in
     let b = compile_expression env b in
-    b @ a @ [EVM.DUP 2; EVM.DUP 2; EVM.LT; EVM.SWAP 2; EVM.SWAP 1; EVM.EQ; EVM.OR]  (* TODO: signed vs unsigned *)
+    EVM.le a b  (* TODO: signed vs unsigned *)
 
   | Lt (a, b) ->
     let a = compile_expression env a in
     let b = compile_expression env b in
-    b @ a @ [EVM.LT]    (* TODO: signed vs unsigned *)
+    EVM.lt a b  (* TODO: signed vs unsigned *)
 
   | Mod (a, b) ->
     let a = compile_expression env a in
     let b = compile_expression env b in
-    b @ a @ [EVM.MOD]   (* TODO: handle division by zero *)
+    EVM.mod' a b  (* TODO: handle division by zero *)
 
   | Mul [a; b] ->
     let a = compile_expression env a in
     let b = compile_expression env b in
-    b @ a @ [EVM.MUL]   (* TODO: handle overflow *)
+    EVM.mul a b  (* TODO: handle overflow *)
 
   | Not x ->
     let x = compile_expression env x in
-    x @ [EVM.ISZERO]
+    EVM.iszero x
 
   | Or [a; b] ->
     let a = compile_expression env a in
     let b = compile_expression env b in
-    b @ a @ [EVM.OR]
+    EVM.or' a b
 
   | Pow (a, b) ->
     let a = compile_expression env a in
     let b = compile_expression env b in
-    b @ a @ [EVM.EXP]   (* TODO: handle overflow *)
+    EVM.exp a b  (* TODO: handle overflow *)
 
   | Sub [a; b] ->
     let a = compile_expression env a in
     let b = compile_expression env b in
-    b @ a @ [EVM.SUB]   (* TODO: handle underflow *)
+    EVM.sub a b  (* TODO: handle underflow *)
 
   | UnwrapPanic input ->
     let input = compile_expression env input in
@@ -218,24 +216,24 @@ and compile_expression env = function
 
   | VarGet var ->
     let var_slot = lookup_variable_slot env var in
-    [EVM.from_int var_slot; EVM.SLOAD]  (* SLOAD key *)
+    EVM.sload var_slot
 
   | VarSet (var, val') ->
     let var_slot = lookup_variable_slot env var in
     let val' = compile_expression env val' in
-    val' @ [EVM.from_int var_slot; EVM.SSTORE]  (* SSTORE key, value *)
+    EVM.sstore var_slot val'
 
   | Xor (a, b) ->
     let a = compile_expression env a in
     let b = compile_expression env b in
-    b @ a @ [EVM.XOR]
+    EVM.xor a b
 
-  | Keyword "block-height" -> [EVM.NUMBER]
-  | Keyword "burn-block-height" -> [EVM.NUMBER]
-  | Keyword "contract-caller" -> [EVM.CALLER]
+  | Keyword "block-height" -> EVM.number
+  | Keyword "burn-block-height" -> EVM.number
+  | Keyword "contract-caller" -> EVM.caller
   | Keyword "is-in-regtest" -> compile_literal (BoolLiteral false)
   | Keyword "stx-liquid-supply" -> unsupported "stx-liquid-supply"
-  | Keyword "tx-sender" -> [EVM.ORIGIN]
+  | Keyword "tx-sender" -> EVM.origin
 
   | FunctionCall ("get", [Identifier _; Identifier _]) ->  (* TODO *)
     [
@@ -247,23 +245,19 @@ and compile_expression env = function
 
   | FunctionCall ("hash160", [value]) ->
     begin match type_of_expression value with
-    | Clarity.Buff _ | Int | Uint -> compile_precompile_call env 0x03 value
+    | Clarity.Buff _ | Int | Uint ->
+      let input_size = size_of_expression value in
+      let input_mstore = compile_mstore_of_expression env value in
+      input_mstore @ EVM.staticcall_hash160 0 input_size 0 @ EVM.pop
     | t -> unsupported (Printf.sprintf "(%s %s)" "hash160" (Clarity.type_to_string t))
     end
 
   | FunctionCall ("keccak256", [value]) ->
     begin match type_of_expression value with
     | Clarity.Buff _ | Int | Uint ->
-      let length = size_of_expression value in
+      let input_size = size_of_expression value in
       let value = compile_expression env value in
-      let offset = 0 in
-      value @ [
-        EVM.from_int offset;
-        EVM.MSTORE;         (* MSTORE offset, value *)
-        EVM.from_int length;
-        EVM.from_int offset;
-        EVM.SHA3            (* SHA3 offset, length *)
-      ]
+      EVM.mstore 0 value @ EVM.sha3 0 input_size
     | t -> unsupported (Printf.sprintf "(%s %s)" "keccak256" (Clarity.type_to_string t))
   end
 
@@ -275,18 +269,21 @@ and compile_expression env = function
 
   | FunctionCall ("map-get?", [Identifier var; TupleExpression [("key", _key)]]) ->  (* TODO *)
     let _ = lookup_variable_slot env var in
-    let key = [EVM.CALLER] in  (* TODO *)
+    let key = EVM.caller in  (* TODO *)
     key @ [EVM.SLOAD; EVM.DUP 1; EVM.ISZERO; EVM.NOT]
 
   | FunctionCall ("match", [input_expr; _some_binding; some_branch; none_branch]) ->
     let input_value = compile_expression env input_expr in
     let some_block = compile_expression env some_branch in
     let none_block = compile_expression env none_branch in
-    input_value @ compile_branch [EVM.ISZERO] ([EVM.POP] @ none_block) some_block
+    input_value @ compile_branch [EVM.ISZERO] (EVM.pop @ none_block) some_block
 
   | FunctionCall ("sha256", [value]) ->
     begin match type_of_expression value with
-    | Clarity.Buff _ | Int | Uint -> compile_precompile_call env 0x02 value
+    | Clarity.Buff _ | Int | Uint ->
+      let input_size = size_of_expression value in
+      let input_mstore = compile_mstore_of_expression env value in
+      input_mstore @ EVM.staticcall_sha256 0 input_size 0 @ EVM.pop
     | t -> unsupported (Printf.sprintf "(%s %s)" "sha256" (Clarity.type_to_string t))
     end
 
@@ -302,14 +299,12 @@ and compile_expression env = function
 
   | FunctionCall (name, _args) ->
     let block_id = lookup_function_block env name in
-    let call_sequence = [
-        (* TODO: push function call arguments *)
-        EVM.from_int block_id;
-        EVM.JUMP
-      ]
+    let call_sequence =
+      (* TODO: push function call arguments *)
+      EVM.jump block_id
     in
     let call_length = EVM.opcodes_size call_sequence in
-    (compile_relative_offset call_length) @ call_sequence @ [EVM.JUMPDEST]
+    (compile_relative_offset call_length) @ call_sequence @ EVM.jumpdest
 
   | _ -> unimplemented "arbitrary expressions"  (* TODO *)
 
@@ -331,12 +326,12 @@ and compile_precompile_call env addr value =
   ]
 
 and compile_branch condition then_block else_block =
-  let else_block = [EVM.JUMPDEST] @ else_block in
+  let else_block = EVM.jumpdest @ else_block in
   let else_length = EVM.opcodes_size else_block in
   let then_block = then_block @ (compile_relative_jump else_length EVM.JUMP) in
   let then_length = EVM.opcodes_size then_block in
   condition @ [EVM.ISZERO] @ (compile_relative_jump then_length EVM.JUMPI) @
-    then_block @ else_block @ [EVM.JUMPDEST]
+    then_block @ else_block @ EVM.jumpdest
 
 and compile_relative_jump offset jump =
   let offset = 5 + offset in
@@ -348,7 +343,7 @@ and compile_relative_offset offset =
 
 and compile_literal = function
   | NoneLiteral -> [EVM.zero]
-  | BoolLiteral b -> [EVM.from_int (if b then 1 else 0)]
+  | BoolLiteral b -> [EVM.from_bool b]
   | IntLiteral z ->
     if (Big_int.num_bits_big_int z) <= 127 then [EVM.from_big_int z]
     else unsupported "int underflow/overflow"
