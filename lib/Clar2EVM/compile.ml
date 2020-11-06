@@ -320,22 +320,31 @@ and compile_expression env = function
 
   | _ -> unimplemented "arbitrary expressions"  (* TODO *)
 
-and compile_precompile_call env addr value =
-  let length = size_of_expression value in
-  let value = compile_expression env value in
-  let offset = 0 in
-  value @ [
-    EVM.from_int offset;
-    EVM.MSTORE;           (* MSTORE offset, value *)
-    EVM.from_int 32;      (* retLength  *)
-    EVM.from_int offset;  (* retOffset *)
-    EVM.from_int length;  (* argsLength *)
-    EVM.from_int offset;  (* argsOffset *)
-    EVM.from_int addr;    (* addr *)
-    EVM.GAS;              (* gas *)
-    EVM.STATICCALL;       (* STATICCALL gas, addr, argsOffset, argsLength, retOffset, retLength *)
-    EVM.POP
-  ]
+and compile_static_print_call value =
+  (* See: https://hardhat.org/hardhat-network/#console-log *)
+  (* See: https://github.com/nomiclabs/hardhat/blob/master/packages/hardhat-core/console.sol *)
+  let log_addr = "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x63\x6F\x6e\x73\x6F\x6c\x65\x2e\x6c\x6f\x67" in
+  let (signature, args) =
+    match value with
+    (* TODO: log(address) *)
+    | NoneLiteral -> ("log()", [])
+    | BoolLiteral b -> ("log(bool)", [EVM.ABI.BoolVal b])
+    | IntLiteral z -> ("log(int)", [EVM.ABI.Int128Val z])
+    | UintLiteral z -> ("log(uint)", [EVM.ABI.Uint128Val z])
+    | BuffLiteral s ->
+      let n = String.length s in
+      if n > 0 && n <= 32 then (Printf.sprintf "log(bytes%d)" n, [EVM.ABI.Bytes32Val s])
+      else ("log(bytes)", [EVM.ABI.BytesVal s])
+    | StringLiteral s -> ("log(string)", [EVM.ABI.BytesVal s])
+    | TupleLiteral _ -> unsupported_function "print" (type_of_literal value)
+  in
+  let payload = EVM.ABI.encode_with_signature signature args in
+  let payload_size = String.length payload in
+  let mstore = EVM.mstore_bytes 0 payload in
+  mstore @ EVM.staticcall log_addr 0 payload_size 0 0 @ EVM.pop
+
+and compile_mstore_of_expression ?(offset=0) env expr =
+  EVM.mstore offset (compile_expression env expr)
 
 and compile_branch condition then_block else_block =
   let else_block = EVM.jumpdest @ else_block in
