@@ -6,6 +6,7 @@ module ABI = struct
     | Bool
     | Bytes32
     | BytesN of int
+    | Bytes
     | Int128
     | Int256
     | Uint128
@@ -16,6 +17,7 @@ module ABI = struct
     | BoolVal of bool
     | Bytes32Val of string
     | BytesNVal of int * string
+    | BytesVal of string
     | IntVal of int
     | Int128Val of Big_int.big_int
     | Int256Val of Big_int.big_int
@@ -30,6 +32,7 @@ module ABI = struct
     | BoolVal _ -> Bool
     | Bytes32Val _ -> Bytes32
     | BytesNVal (n, _) -> BytesN n
+    | BytesVal _ -> Bytes
     | IntVal _ -> Int256
     | Int128Val _ -> Int128
     | Int256Val _ -> Int256
@@ -42,6 +45,7 @@ module ABI = struct
     | Bool -> "bool"
     | Bytes32 -> "bytes32"
     | BytesN n -> Printf.sprintf "bytes%d" n
+    | Bytes -> "bytes"
     | Int128 -> "int128"
     | Int256 -> "int256"
     | Uint128 -> "uint128"
@@ -71,30 +75,42 @@ module ABI = struct
     | BoolVal b -> encode_int_as_uint256 (if b then 1 else 0)
     | Bytes32Val s -> encode_string_as_bytes32 s
     | BytesNVal (_, s) -> encode_string_as_bytes32 s
+    | BytesVal s -> encode_string_as_bytes s
     | IntVal z | UintVal z -> encode_int_as_uint256 z
     | Int128Val z | Uint128Val z -> encode_bigint_as_uint256 z
     | Int256Val z | Uint256Val z -> encode_bigint_as_uint256 z
 
-  and encode_address_as_bytes32 s =
-    begin match String.length s with
+  and encode_address_as_bytes32 address =
+    begin match String.length address with
     | 20 ->
       let buffer = Buffer.create 32 in
       for _ = 1 to 12 do Buffer.add_char buffer '\x00' done;
-      Buffer.add_string buffer s;
+      Buffer.add_string buffer address;
       Buffer.contents buffer
     | _ -> failwith "invalid address"
     end
 
-  and encode_string_as_bytes32 s =
-    begin match String.length s with
-    | 32 -> s
-    | len when len > 32 -> failwith "invalid inline string"
-    | len ->
+  and encode_string_as_bytes32 input =
+    begin match String.length input with
+    | 32 -> input
+    | length when length > 32 -> failwith "invalid inline string"
+    | length ->
       let buffer = Buffer.create 32 in
-      Buffer.add_string buffer s;
-      for _ = 1 to 32 - len do Buffer.add_char buffer '\x00' done;
+      Buffer.add_string buffer input;
+      for _ = length + 1 to 32 do Buffer.add_char buffer '\x00' done;
       Buffer.contents buffer
     end
+
+  and encode_string_as_bytes input =
+    let length = String.length input in
+    let buffer = Buffer.create 64 in
+    Buffer.add_int64_be buffer 0L;
+    Buffer.add_int64_be buffer 0L;
+    Buffer.add_int64_be buffer 0L;
+    Buffer.add_int64_be buffer (Int64.of_int length);
+    Buffer.add_string buffer input;
+    for _ = length + 1 to 32 do Buffer.add_char buffer '\x00' done;
+    Buffer.contents buffer
 
   and encode_int_as_uint256 z =
     encode_int64_as_uint256 (Int64.of_int z)

@@ -8,6 +8,7 @@ module ABI : sig
     | Bool
     | Bytes32
     | BytesN of int
+    | Bytes
     | Int128
     | Int256
     | Uint128
@@ -18,6 +19,7 @@ module ABI : sig
     | BoolVal of bool
     | Bytes32Val of string
     | BytesNVal of int * string
+    | BytesVal of string
     | IntVal of int
     | Int128Val of Big_int.big_int
     | Int256Val of Big_int.big_int
