@@ -189,6 +189,18 @@ and compile_expression env = function
     | a_type, b_type -> unsupported_function2 "is-eq" a_type b_type
     end
 
+  | IsNone x ->
+    begin match type_of_expression x with
+    | Optional _ -> compile_expression env x |> EVM.iszero
+    | t -> unsupported_function "is-none" t
+    end
+
+  | IsSome x ->
+    begin match type_of_expression x with
+    | Optional _ -> compile_expression env x @ [EVM.ISZERO; EVM.ISZERO]
+    | t -> unsupported_function "is-some" t
+    end
+
   | Le (a, b) ->
     let a = compile_expression env a in
     let b = compile_expression env b in
@@ -222,6 +234,8 @@ and compile_expression env = function
     let a = compile_expression env a in
     let b = compile_expression env b in
     EVM.exp a b  (* TODO: handle overflow *)
+
+  | SomeExpression x -> compile_expression env x @ [EVM.one]
 
   | Sub [a; b] ->
     let a = compile_expression env a in

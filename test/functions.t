@@ -158,9 +158,47 @@ is-err:
 
 is-none:
 
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (is-none none))
+  > EOF
+  PUSH1 0x00 ISZERO PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (is-none (some 5)))
+  > EOF
+  PUSH1 0x05 PUSH1 0x01 ISZERO PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN
+  STOP
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (is-none 42))
+  > EOF
+  clarc: internal error, uncaught exception:
+         Failure("(is-none int) not supported")
+         
+  [125]
+
 is-ok:
 
 is-some:
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (is-some none))
+  > EOF
+  PUSH1 0x00 ISZERO ISZERO PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (is-some (some 5)))
+  > EOF
+  PUSH1 0x05 PUSH1 0x01 ISZERO ISZERO PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00
+  RETURN STOP
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (is-some 42))
+  > EOF
+  clarc: internal error, uncaught exception:
+         Failure("(is-some int) not supported")
+         
+  [125]
 
 keccak256:
 
@@ -312,6 +350,11 @@ sha512/256:
   [125]
 
 some:
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (some 5))
+  > EOF
+  PUSH1 0x05 PUSH1 0x01 PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
 
 sqrti:
 

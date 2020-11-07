@@ -64,6 +64,8 @@ val mstore_bytes : ptr -> string -> opcode list
 
 val mul : opcode list -> opcode list -> opcode list
 
+val not' : opcode list -> opcode list
+
 val number : opcode list
 
 val or' : opcode list -> opcode list -> opcode list

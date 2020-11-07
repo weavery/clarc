@@ -91,6 +91,8 @@ let mstore_bytes ptr input =
 
 let mul a b = b @ a @ [MUL]
 
+let not' x = x @ [NOT]
+
 let number = [NUMBER]
 
 let or' a b = b @ a @ [OR]
