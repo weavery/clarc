@@ -130,9 +130,13 @@ and compile_public_function ?(response_only=false) features env index (name, _, 
   in
   let rec compile_body_with_response_return = function
     | [] -> error_in_function name "function body is empty"
+    | [Clarity.Ok expr]
     | [Clarity.Err expr] -> [compile_expression env expr]
-    | [Clarity.Ok expr] -> [compile_expression env expr]
-    | [_] -> error_in_function name "function must return (ok) or (err)"
+    | [expr] ->
+      begin match type_of_expression expr with
+      | Response _ -> [compile_expression env expr]
+      | _ -> error_in_function name "function must return (ok) or (err)"
+      end
     | expr :: exprs -> compile_expression env expr :: compile_body_with_response_return exprs
   in
   let compile_body_with_any_return = function
@@ -239,6 +243,12 @@ and compile_expression env = function
     let b = compile_expression env b in
     EVM.lt a b  (* TODO: signed vs unsigned *)
 
+  | Match (input_expr, (_, some_branch), (_, none_branch)) ->
+    let input_value = compile_expression env input_expr in
+    let some_block = compile_expression env some_branch in
+    let none_block = compile_expression env none_branch in
+    input_value @ compile_branch [EVM.ISZERO] (EVM.pop @ none_block) some_block
+
   | Mod (a, b) ->
     let a = compile_expression env a in
     let b = compile_expression env b in
@@ -335,12 +345,6 @@ and compile_expression env = function
     let _ = lookup_variable_slot env var in
     let key = EVM.caller in  (* TODO *)
     key @ [EVM.SLOAD; EVM.DUP 1; EVM.ISZERO; EVM.NOT]
-
-  | FunctionCall ("match", [input_expr; _some_binding; some_branch; none_branch]) ->
-    let input_value = compile_expression env input_expr in
-    let some_block = compile_expression env some_branch in
-    let none_block = compile_expression env none_branch in
-    input_value @ compile_branch [EVM.ISZERO] (EVM.pop @ none_block) some_block
 
   | FunctionCall ("print", [expr]) ->
     begin match expr with
