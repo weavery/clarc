@@ -15,6 +15,9 @@ let unsupported_function2 name type1 type2 =
   let typename2 = Clarity.type_to_string type2 in
   unsupported (Printf.sprintf "(%s %s %s)" name typename1 typename2)
 
+let error_in_function name message =
+  failwith (Printf.sprintf "%s: %s" name message)
+
 let rec compile_contract ?(features=[]) program =
   let only_f = function Feature.OnlyFunction fn -> Some fn | _ -> None in
   let only_function = List.find_map only_f features in
@@ -109,13 +112,11 @@ and compile_program features env program =
 
 and compile_definition features env index = function
   | Clarity.Constant _ | DataVar _ | Map _ -> unreachable ()
-  | PrivateFunction func ->
-    compile_private_function features env index func
-  | PublicFunction func
-  | PublicReadOnlyFunction func ->
-    compile_public_function features env index func
+  | PrivateFunction func -> compile_private_function features env index func
+  | PublicFunction func -> compile_public_function features env index func ~response_only:true
+  | PublicReadOnlyFunction func -> compile_public_function features env index func ~response_only:false
 
-and compile_public_function features env index (_, _, body) =
+and compile_public_function ?(response_only=false) features env index (name, _, body) =
   let only_f = function Feature.OnlyFunction fn -> Some fn | _ -> None in
   let only_function = List.find_map only_f features in
   let prelude =
@@ -127,7 +128,22 @@ and compile_public_function features env index (_, _, body) =
         (* TODO: fetch function arguments *)
       ]
   in
-  let body = List.concat_map (compile_expression env) body in
+  let rec compile_body_with_response_return = function
+    | [] -> error_in_function name "function body is empty"
+    | [Clarity.Err expr] -> [compile_expression env expr]
+    | [Clarity.Ok expr] -> [compile_expression env expr]
+    | [_] -> error_in_function name "function must return (ok) or (err)"
+    | expr :: exprs -> compile_expression env expr :: compile_body_with_response_return exprs
+  in
+  let compile_body_with_any_return = function
+    | [] -> error_in_function name "function body is empty"
+    | exprs -> List.map (compile_expression env) exprs
+  in
+  let compile_body = if response_only
+    then compile_body_with_response_return
+    else compile_body_with_any_return
+  in
+  let body = compile_body body |> List.concat in
   let postlude = [      (* (ok ...) or (err ...) expected on top of stack *)
     EVM.zero;           (* offset = memory address 0 *)
     EVM.MSTORE;         (* MSTORE offset, value *)
