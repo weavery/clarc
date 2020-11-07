@@ -25,8 +25,6 @@ module ABI = struct
     | Uint128Val of Big_int.big_int
     | Uint256Val of Big_int.big_int
 
-  let keccak256 = Cryptokit.hash_string (Cryptokit.Hash.keccak 256)
-
   let type_of = function
     | AddressVal _ -> Address
     | BoolVal _ -> Bool
@@ -50,6 +48,10 @@ module ABI = struct
     | Int256 -> "int256"
     | Uint128 -> "uint128"
     | Uint256 -> "uint256"
+
+  let keccak256 input =
+    let hash_function = Cryptokit.Hash.keccak 256 in
+    Cryptokit.hash_string hash_function input
 
   let rec encode_with_signature signature args =
     let selector = encode_function_signature signature in
