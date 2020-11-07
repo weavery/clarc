@@ -128,7 +128,7 @@ and compile_public_function features env index (_, _, body) =
       ]
   in
   let body = List.concat_map (compile_expression env) body in
-  let postlude = [      (* return value expected on top of stack *)
+  let postlude = [      (* (ok ...) or (err ...) expected on top of stack *)
     EVM.zero;           (* offset = memory address 0 *)
     EVM.MSTORE;         (* MSTORE offset, value *)
     EVM.from_int 0x20;  (* length = 256 bits *)
@@ -152,8 +152,6 @@ and compile_expression env = function
   | Literal lit -> compile_literal lit
   | TupleExpression [("key", key)] -> compile_expression env key
   | TupleExpression _ -> unimplemented "arbitrary tuple expressions"  (* TODO *)
-  | Ok expr -> compile_expression env expr
-  | Err expr -> compile_expression env expr
 
   | Add [a; b] ->
     let a = compile_expression env a in
@@ -169,6 +167,8 @@ and compile_expression env = function
     let a = compile_expression env a in
     let b = compile_expression env b in
     EVM.div a b  (* TODO: handle division by zero *)
+
+  | Err x -> compile_expression env x @ [EVM.zero]
 
   | Ge (a, b) ->
     let a = compile_expression env a in
@@ -189,10 +189,22 @@ and compile_expression env = function
     | a_type, b_type -> unsupported_function2 "is-eq" a_type b_type
     end
 
+  | IsErr x ->
+    begin match type_of_expression x with
+    | Response _ -> compile_expression env x |> EVM.iszero
+    | t -> unsupported_function "is-err" t
+    end
+
   | IsNone x ->
     begin match type_of_expression x with
     | Optional _ -> compile_expression env x |> EVM.iszero
     | t -> unsupported_function "is-none" t
+    end
+
+  | IsOk x ->
+    begin match type_of_expression x with
+    | Response _ -> compile_expression env x @ [EVM.ISZERO; EVM.ISZERO]
+    | t -> unsupported_function "is-ok" t
     end
 
   | IsSome x ->
@@ -224,6 +236,8 @@ and compile_expression env = function
   | Not x ->
     let x = compile_expression env x in
     EVM.iszero x
+
+  | Ok x -> compile_expression env x @ [EVM.one]
 
   | Or [a; b] ->
     let a = compile_expression env a in

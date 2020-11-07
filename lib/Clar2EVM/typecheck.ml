@@ -7,7 +7,8 @@ let rec type_of_expression = function
   | TupleExpression _ -> unimplemented "type_of_expression for tuple expressions"
   | ListExpression _ -> unimplemented "type_of_expression for list expressions"
   | SomeExpression expr -> Clarity.Optional (type_of_expression expr)
-  | Ok expr | Err expr -> type_of_expression expr
+  | Ok expr -> Response (type_of_expression expr, Unit)
+  | Err expr -> Response (Unit, type_of_expression expr)
 
   | Add _ | Sub _ | Mul _ | Div _ | Mod _ | Pow _ | Xor _ -> Clarity.Int
   | Ge _ | Gt _ | Le _ | Lt _ -> Bool

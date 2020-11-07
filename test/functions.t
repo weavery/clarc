@@ -87,6 +87,16 @@ default-to:
 
 err:
 
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (err 5))
+  > EOF
+  PUSH1 0x05 PUSH1 0x00 PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (err u5))
+  > EOF
+  PUSH1 0x05 PUSH1 0x00 PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
+
 filter:
 
 fold:
@@ -156,6 +166,26 @@ is-eq:
 
 is-err:
 
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (is-err (err u5)))
+  > EOF
+  PUSH1 0x05 PUSH1 0x00 ISZERO PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN
+  STOP
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (is-err (ok true)))
+  > EOF
+  PUSH1 0x01 PUSH1 0x01 ISZERO PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN
+  STOP
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (is-err 42))
+  > EOF
+  clarc: internal error, uncaught exception:
+         Failure("(is-err int) not supported")
+         
+  [125]
+
 is-none:
 
   $ clarc -t opcode -f only-function=test <<EOF
@@ -178,6 +208,26 @@ is-none:
   [125]
 
 is-ok:
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (is-ok (err u5)))
+  > EOF
+  PUSH1 0x05 PUSH1 0x00 ISZERO ISZERO PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00
+  RETURN STOP
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (is-ok (ok true)))
+  > EOF
+  PUSH1 0x01 PUSH1 0x01 ISZERO ISZERO PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00
+  RETURN STOP
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (is-ok 42))
+  > EOF
+  clarc: internal error, uncaught exception:
+         Failure("(is-ok int) not supported")
+         
+  [125]
 
 is-some:
 
@@ -275,6 +325,16 @@ not:
   PUSH1 0x01 ISZERO PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
 
 ok:
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (ok true))
+  > EOF
+  PUSH1 0x01 PUSH1 0x01 PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (ok 5))
+  > EOF
+  PUSH1 0x05 PUSH1 0x01 PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
 
 or:
 
