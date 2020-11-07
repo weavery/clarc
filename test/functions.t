@@ -122,6 +122,13 @@ hash160:
 
 if:
 
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (if true 5 7))
+  > EOF
+  PUSH1 0x01 ISZERO PC PUSH1 0x0c ADD JUMPI PUSH1 0x05 PC PUSH1 0x08 ADD JUMP
+  JUMPDEST PUSH1 0x07 JUMPDEST PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN
+  STOP
+
 impl-trait:
 
 is-eq:
@@ -303,6 +310,13 @@ map-insert:
 map-set:
 
 match:
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (match (some 3) x 5 7))
+  > EOF
+  PUSH1 0x03 PUSH1 0x01 ISZERO ISZERO PC PUSH1 0x0d ADD JUMPI POP PUSH1 0x07 PC
+  PUSH1 0x08 ADD JUMP JUMPDEST PUSH1 0x05 JUMPDEST PUSH1 0x00 MSTORE PUSH1 0x20
+  PUSH1 0x00 RETURN STOP
 
 mod:
 

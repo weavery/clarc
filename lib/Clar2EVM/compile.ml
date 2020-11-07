@@ -200,6 +200,16 @@ and compile_expression env = function
     let b = compile_expression env b in
     EVM.gt a b  (* TODO: signed vs unsigned *)
 
+  | If (cond_expr, then_branch, else_branch) ->
+    begin match type_of_expression cond_expr with
+    | Bool ->
+      let cond_value = compile_expression env cond_expr in
+      let then_block = compile_expression env then_branch in
+      let else_block = compile_expression env else_branch in
+      compile_branch cond_value then_block else_block
+    | t -> unsupported_function "if" t
+    end
+
   | IsEq [a; b] ->
     begin match type_of_expression a, type_of_expression b with
     | a_type, b_type when a_type = b_type ->
@@ -408,12 +418,12 @@ and compile_static_print_call value =
 and compile_mstore_of_expression ?(offset=0) env expr =
   EVM.mstore offset (compile_expression env expr)
 
-and compile_branch condition then_block else_block =
+and compile_branch cond_block then_block else_block =
   let else_block = EVM.jumpdest @ else_block in
   let else_length = EVM.opcodes_size else_block in
   let then_block = then_block @ (compile_relative_jump else_length EVM.JUMP) in
   let then_length = EVM.opcodes_size then_block in
-  condition @ [EVM.ISZERO] @ (compile_relative_jump then_length EVM.JUMPI) @
+  cond_block @ [EVM.ISZERO] @ (compile_relative_jump then_length EVM.JUMPI) @
     then_block @ else_block @ EVM.jumpdest
 
 and compile_relative_jump offset jump =
