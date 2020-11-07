@@ -116,6 +116,44 @@ impl-trait:
 
 is-eq:
 
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (is-eq true false))
+  > EOF
+  PUSH1 0x00 PUSH1 0x01 EQ PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (is-eq true true))
+  > EOF
+  PUSH1 0x01 PUSH1 0x01 EQ PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (is-eq 7 9))
+  > EOF
+  PUSH1 0x09 PUSH1 0x07 EQ PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (is-eq 9 9))
+  > EOF
+  PUSH1 0x09 PUSH1 0x09 EQ PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (is-eq u9 u9))
+  > EOF
+  PUSH1 0x09 PUSH1 0x09 EQ PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (is-eq 0xAB 0xAB))
+  > EOF
+  PUSH1 0xab PUSH1 0xab EQ PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (is-eq true 42))
+  > EOF
+  clarc: internal error, uncaught exception:
+         Failure("(is-eq bool int) not supported")
+         
+  [125]
+
 is-err:
 
 is-none:

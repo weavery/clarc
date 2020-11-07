@@ -36,6 +36,8 @@ val caller : opcode list
 
 val div : opcode list -> opcode list -> opcode list
 
+val eq : opcode list -> opcode list -> opcode list
+
 val exp : opcode list -> opcode list -> opcode list
 
 val ge : opcode list -> opcode list -> opcode list

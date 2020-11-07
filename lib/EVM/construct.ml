@@ -45,48 +45,37 @@ let one = from_int 1
 
 let two = from_int 2
 
-let add a b =
-  b @ a @ [ADD]
+let add a b = b @ a @ [ADD]
 
-let and' a b =
-  b @ a @ [AND]
+let and' a b = b @ a @ [AND]
 
 let caller = [CALLER]
 
-let div a b =
-  b @ a @ [DIV]
+let div a b = b @ a @ [DIV]
 
-let exp a b =
-  b @ a @ [EXP]
+let eq a b = b @ a @ [EQ]
 
-let ge a b =
-  b @ a @ [DUP 2; DUP 2; GT; SWAP 2; SWAP 1; EQ; OR]
+let exp a b = b @ a @ [EXP]
 
-let gt a b =
-  b @ a @ [GT]
+let ge a b = b @ a @ [DUP 2; DUP 2; GT; SWAP 2; SWAP 1; EQ; OR]
 
-let iszero x =
-  x @ [ISZERO]
+let gt a b = b @ a @ [GT]
 
-let jump dest =
-  [from_int dest; JUMP]
+let iszero x = x @ [ISZERO]
+
+let jump dest = [from_int dest; JUMP]
 
 let jumpdest = [JUMPDEST]
 
-let le a b =
-  b @ a @ [DUP 2; DUP 2; LT; SWAP 2; SWAP 1; EQ; OR]
+let le a b = b @ a @ [DUP 2; DUP 2; LT; SWAP 2; SWAP 1; EQ; OR]
 
-let lt a b =
-  b @ a @ [LT]
+let lt a b = b @ a @ [LT]
 
-let mload ptr =
-  [from_ptr ptr; MLOAD]
+let mload ptr = [from_ptr ptr; MLOAD]
 
-let mod' a b =
-  b @ a @ [MOD]
+let mod' a b = b @ a @ [MOD]
 
-let mstore ptr val' =
-  val' @ [from_ptr ptr; MSTORE]
+let mstore ptr val' = val' @ [from_ptr ptr; MSTORE]
 
 let mstore_bytes ptr input =
   let input_size = String.length input in
@@ -100,26 +89,21 @@ let mstore_bytes ptr input =
   in
   loop ptr 0 [] |> List.rev |> List.concat
 
-let mul a b =
-  b @ a @ [MUL]
+let mul a b = b @ a @ [MUL]
 
 let number = [NUMBER]
 
-let or' a b =
-  b @ a @ [OR]
+let or' a b = b @ a @ [OR]
 
 let origin = [ORIGIN]
 
 let pop = [POP]
 
-let sha3 input_ptr input_size =
-  [from_int input_size; from_int input_ptr; SHA3]
+let sha3 input_ptr input_size = [from_int input_size; from_int input_ptr; SHA3]
 
-let sload key =
-  [from_int key; SLOAD]
+let sload key = [from_int key; SLOAD]
 
-let sstore key val' =
-  val' @ [from_int key; SSTORE]
+let sstore key val' = val' @ [from_int key; SSTORE]
 
 let staticcall ?(gas=0) addr input_ptr input_size output_ptr output_size =
   [
@@ -140,8 +124,6 @@ let staticcall_sha256 input_ptr input_size output_ptr =
 
 let stop = [STOP]
 
-let sub a b =
-  b @ a @ [SUB]
+let sub a b = b @ a @ [SUB]
 
-let xor a b =
-  b @ a @ [XOR]
+let xor a b = b @ a @ [XOR]

@@ -10,6 +10,11 @@ let unimplemented_function name type' =
 let unsupported_function name type' =
   unsupported (Printf.sprintf "(%s %s)" name (Clarity.type_to_string type'))
 
+let unsupported_function2 name type1 type2 =
+  let typename1 = Clarity.type_to_string type1 in
+  let typename2 = Clarity.type_to_string type2 in
+  unsupported (Printf.sprintf "(%s %s %s)" name typename1 typename2)
+
 let rec compile_contract ?(features=[]) program =
   let only_f = function Feature.OnlyFunction fn -> Some fn | _ -> None in
   let only_function = List.find_map only_f features in
@@ -174,6 +179,15 @@ and compile_expression env = function
     let a = compile_expression env a in
     let b = compile_expression env b in
     EVM.gt a b  (* TODO: signed vs unsigned *)
+
+  | IsEq [a; b] ->
+    begin match type_of_expression a, type_of_expression b with
+    | a_type, b_type when a_type = b_type ->
+      let a = compile_expression env a in
+      let b = compile_expression env b in
+      EVM.eq a b
+    | a_type, b_type -> unsupported_function2 "is-eq" a_type b_type
+    end
 
   | Le (a, b) ->
     let a = compile_expression env a in
