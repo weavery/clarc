@@ -4,6 +4,8 @@ type addr = string
 
 type ptr = int
 
+type slice = ptr * int
+
 let rec addr_of_int z =
   match from_int z with PUSH (_, s) -> s | _ -> unreachable ()
 
@@ -101,13 +103,22 @@ let origin = [ORIGIN]
 
 let pop = [POP]
 
-let sha3 input_ptr input_size = [from_int input_size; from_int input_ptr; SHA3]
+let return' = function
+  | data_ptr, data_size when data_ptr = data_size -> [from_int data_size; DUP 1; RETURN]
+  | data_ptr, data_size -> [from_int data_size; from_int data_ptr; RETURN]
+
+let revert = function
+  | data_ptr, data_size when data_ptr = data_size -> [from_int data_size; DUP 1; REVERT]
+  | data_ptr, data_size -> [from_int data_size; from_int data_ptr; REVERT]
+
+let sha3 = function
+  | input_ptr, input_size -> [from_int input_size; from_int input_ptr; SHA3]
 
 let sload key = [from_int key; SLOAD]
 
 let sstore key val' = val' @ [from_int key; SSTORE]
 
-let staticcall ?(gas=0) addr input_ptr input_size output_ptr output_size =
+let staticcall ?(gas=0) addr (input_ptr, input_size) (output_ptr, output_size) =
   [
     from_int output_size;
     from_ptr output_ptr;
@@ -118,11 +129,11 @@ let staticcall ?(gas=0) addr input_ptr input_size output_ptr output_size =
     STATICCALL (* gas, addr, argsOffset, argsLength, retOffset, retLength *)
   ]
 
-let staticcall_hash160 input_ptr input_size output_ptr =
-  staticcall (addr_of_int 0x03) input_ptr input_size output_ptr 32
+let staticcall_hash160 (input_ptr, input_size) output_ptr =
+  staticcall (addr_of_int 0x03) (input_ptr, input_size) (output_ptr, 32)
 
-let staticcall_sha256 input_ptr input_size output_ptr =
-  staticcall (addr_of_int 0x02) input_ptr input_size output_ptr 32
+let staticcall_sha256 (input_ptr, input_size) output_ptr =
+  staticcall (addr_of_int 0x02) (input_ptr, input_size) (output_ptr, 32)
 
 let stop = [STOP]
 

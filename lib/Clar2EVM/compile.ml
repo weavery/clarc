@@ -148,14 +148,14 @@ and compile_public_function ?(response_only=false) features env index (name, _, 
     else compile_body_with_any_return
   in
   let body = compile_body body |> List.concat in
-  let postlude = [      (* (ok ...) or (err ...) expected on top of stack *)
-    EVM.zero;           (* offset = memory address 0 *)
-    EVM.MSTORE;         (* MSTORE offset, value *)
-    EVM.from_int 0x20;  (* length = 256 bits *)
-    EVM.zero;           (* offset = memory address 0 *)
-    EVM.RETURN;         (* RETURN offset, length *)
-    EVM.STOP;           (* redundant, but a good marker for EOF *)
-  ] in
+  let postlude =        (* (ok ...) or (err ...) expected on top of stack *)
+    [
+      EVM.zero;         (* offset = memory address 0 *)
+      EVM.MSTORE;       (* MSTORE offset, value *)
+    ]
+    @ EVM.return' (0, 32)
+    @ EVM.stop          (* redundant, but a good marker for EOF *)
+  in
   (1 + index, prelude @ body @ postlude)
 
 and compile_private_function _features env index (_, _, body) =
@@ -295,7 +295,7 @@ and compile_expression env = function
   | UnwrapPanic input ->
     let input = compile_expression env input in
     input @ compile_branch [EVM.DUP 1; EVM.ISZERO]
-      [EVM.POP; EVM.zero; EVM.zero; EVM.REVERT]
+      (EVM.pop @ EVM.revert (0, 0))
       [EVM.SLOAD]
 
   | VarGet var ->
@@ -332,7 +332,7 @@ and compile_expression env = function
     | Clarity.Buff _ | Int | Uint ->
       let input_size = size_of_expression value in
       let input_mstore = compile_mstore_of_expression env value in
-      input_mstore @ EVM.staticcall_hash160 0 input_size 0 @ EVM.pop
+      input_mstore @ EVM.staticcall_hash160 (0, input_size) 0 @ EVM.pop
     | t -> unsupported_function "hash160" t
     end
 
@@ -341,7 +341,7 @@ and compile_expression env = function
     | Clarity.Buff _ | Int | Uint ->
       let input_size = size_of_expression value in
       let value = compile_expression env value in
-      EVM.mstore 0 value @ EVM.sha3 0 input_size
+      EVM.mstore 0 value @ EVM.sha3 (0, input_size)
     | t -> unsupported_function "keccak256" t
   end
 
@@ -367,7 +367,7 @@ and compile_expression env = function
     | Clarity.Buff _ | Int | Uint ->
       let input_size = size_of_expression value in
       let input_mstore = compile_mstore_of_expression env value in
-      input_mstore @ EVM.staticcall_sha256 0 input_size 0 @ EVM.pop
+      input_mstore @ EVM.staticcall_sha256 (0, input_size) 0 @ EVM.pop
     | t -> unsupported_function "sha256" t
   end
 
@@ -413,7 +413,7 @@ and compile_static_print_call value =
   let payload = EVM.ABI.encode_with_signature signature args in
   let payload_size = String.length payload in
   let mstore = EVM.mstore_bytes 0 payload in
-  mstore @ EVM.staticcall log_addr 0 payload_size 0 0 @ EVM.pop
+  mstore @ EVM.staticcall log_addr (0, payload_size) (0, 0) @ EVM.pop
 
 and compile_mstore_of_expression ?(offset=0) env expr =
   EVM.mstore offset (compile_expression env expr)

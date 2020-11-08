@@ -4,6 +4,8 @@ type addr = string
 
 type ptr = int
 
+type slice = ptr * int
+
 val addr_of_int : int -> addr
 
 val ptr_of_int : int -> ptr
@@ -74,17 +76,21 @@ val origin : opcode list
 
 val pop : opcode list
 
-val sha3 : ptr -> int -> opcode list
+val return' : slice -> opcode list
+
+val revert : slice -> opcode list
+
+val sha3 : slice -> opcode list
 
 val sload : int -> opcode list
 
 val sstore : int -> opcode list -> opcode list
 
-val staticcall : ?gas:int -> addr -> ptr -> int -> ptr -> int -> opcode list
+val staticcall : ?gas:int -> addr -> slice -> slice -> opcode list
 
-val staticcall_hash160 : ptr -> int -> ptr -> opcode list
+val staticcall_hash160 : slice -> ptr -> opcode list
 
-val staticcall_sha256 : ptr -> int -> ptr -> opcode list
+val staticcall_sha256 : slice -> ptr -> opcode list
 
 val stop : opcode list
 
