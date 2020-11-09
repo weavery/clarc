@@ -55,6 +55,10 @@ let caller = [CALLER]
 
 let div a b = b @ a @ [DIV]
 
+let dup n = [DUP n]
+
+let dup1 = dup 1
+
 let eq a b = b @ a @ [EQ]
 
 let exp a b = b @ a @ [EXP]
@@ -78,6 +82,8 @@ let mload ptr = [from_ptr ptr; MLOAD]
 let mod' a b = b @ a @ [MOD]
 
 let mstore ptr val' = val' @ [from_ptr ptr; MSTORE]
+
+let mstore_int ptr input = mstore ptr [from_int input]
 
 let mstore_bytes ptr input =
   let input_size = String.length input in
@@ -103,13 +109,24 @@ let origin = [ORIGIN]
 
 let pop = [POP]
 
+let pop1 = pop
+let pop2 = [POP; POP]
+
 let return' = function
   | data_ptr, data_size when data_ptr = data_size -> [from_int data_size; DUP 1; RETURN]
   | data_ptr, data_size -> [from_int data_size; from_int data_ptr; RETURN]
 
+let return0 = return' (0, 0)
+let return1 = return' (0, 32)
+let return2 = return' (0, 64)
+
 let revert = function
   | data_ptr, data_size when data_ptr = data_size -> [from_int data_size; DUP 1; REVERT]
   | data_ptr, data_size -> [from_int data_size; from_int data_ptr; REVERT]
+
+let revert0 = revert (0, 0)
+let revert1 = revert (0, 32)
+let revert2 = revert (0, 64)
 
 let sha3 = function
   | input_ptr, input_size -> [from_int input_size; from_int input_ptr; SHA3]

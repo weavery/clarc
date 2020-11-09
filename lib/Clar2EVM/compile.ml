@@ -149,11 +149,8 @@ and compile_public_function ?(response_only=false) features env index (name, _, 
   in
   let body = compile_body body |> List.concat in
   let postlude =        (* (ok ...) or (err ...) expected on top of stack *)
-    [
-      EVM.zero;         (* offset = memory address 0 *)
-      EVM.MSTORE;       (* MSTORE offset, value *)
-    ]
-    @ EVM.return' (0, 32)
+    EVM.mstore 0 []
+    @ EVM.return1
     @ EVM.stop          (* redundant, but a good marker for EOF *)
   in
   (1 + index, prelude @ body @ postlude)
@@ -302,10 +299,23 @@ and compile_expression env = function
     let b = compile_expression env b in
     EVM.sub a b  (* TODO: handle underflow *)
 
+  | Try (input) ->
+    begin match type_of_expression input with
+    | Optional _ ->
+      let cond_value = compile_expression env input in
+      let none_block = EVM.mstore_int 0 0 @ EVM.return1 in
+      compile_branch cond_value [] none_block
+    | Response _ ->
+      let cond_value = compile_expression env input in
+      let err_block = EVM.mstore_int 0 0 @ EVM.mstore 1 [] @ EVM.return2 in
+      compile_branch cond_value [] err_block
+    | t -> unsupported_function "try!" t
+    end
+
   | UnwrapPanic input ->
     let input = compile_expression env input in
     input @ compile_branch [EVM.DUP 1; EVM.ISZERO]
-      (EVM.pop @ EVM.revert (0, 0))
+      (EVM.pop @ EVM.revert0)
       [EVM.SLOAD]
 
   | VarGet var ->
@@ -334,7 +344,7 @@ and compile_expression env = function
     | Bool ->
       let cond_value = compile_expression env bool_expr in
       let then_block = [EVM.one] in
-      let else_block = EVM.revert (0, 0) in
+      let else_block = EVM.revert0 in
       compile_branch cond_value then_block else_block
     | t -> unsupported_function "asserts!" t
     end

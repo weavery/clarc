@@ -38,6 +38,9 @@ val caller : opcode list
 
 val div : opcode list -> opcode list -> opcode list
 
+val dup : int -> opcode list
+val dup1 : opcode list
+
 val eq : opcode list -> opcode list -> opcode list
 
 val exp : opcode list -> opcode list -> opcode list
@@ -61,7 +64,7 @@ val mload : ptr -> opcode list
 val mod' : opcode list -> opcode list -> opcode list
 
 val mstore : ptr -> opcode list -> opcode list
-
+val mstore_int : ptr -> int -> opcode list
 val mstore_bytes : ptr -> string -> opcode list
 
 val mul : opcode list -> opcode list -> opcode list
@@ -75,10 +78,18 @@ val or' : opcode list -> opcode list -> opcode list
 val origin : opcode list
 
 val pop : opcode list
+val pop1 : opcode list
+val pop2 : opcode list
 
 val return' : slice -> opcode list
+val return0 : opcode list
+val return1 : opcode list
+val return2 : opcode list
 
 val revert : slice -> opcode list
+val revert0 : opcode list
+val revert1 : opcode list
+val revert2 : opcode list
 
 val sha3 : slice -> opcode list
 
@@ -87,9 +98,7 @@ val sload : int -> opcode list
 val sstore : int -> opcode list -> opcode list
 
 val staticcall : ?gas:int -> addr -> slice -> slice -> opcode list
-
 val staticcall_hash160 : slice -> ptr -> opcode list
-
 val staticcall_sha256 : slice -> ptr -> opcode list
 
 val stop : opcode list

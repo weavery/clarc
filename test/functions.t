@@ -464,6 +464,34 @@ to-uint:
 
 try!:
 
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (try! none))
+  > EOF
+  PUSH1 0x00 ISZERO PC PUSH1 0x0a ADD JUMPI PC PUSH1 0x10 ADD JUMP JUMPDEST
+  PUSH1 0x00 PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN JUMPDEST PUSH1 0x00
+  MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (try! (some 7)))
+  > EOF
+  PUSH1 0x07 PUSH1 0x01 ISZERO PC PUSH1 0x0a ADD JUMPI PC PUSH1 0x10 ADD JUMP
+  JUMPDEST PUSH1 0x00 PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN JUMPDEST
+  PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (try! (err 7)))
+  > EOF
+  PUSH1 0x07 PUSH1 0x00 ISZERO PC PUSH1 0x0a ADD JUMPI PC PUSH1 0x13 ADD JUMP
+  JUMPDEST PUSH1 0x00 PUSH1 0x00 MSTORE PUSH1 0x01 MSTORE PUSH1 0x40 PUSH1 0x00
+  RETURN JUMPDEST PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (try! (ok 7)))
+  > EOF
+  PUSH1 0x07 PUSH1 0x01 ISZERO PC PUSH1 0x0a ADD JUMPI PC PUSH1 0x13 ADD JUMP
+  JUMPDEST PUSH1 0x00 PUSH1 0x00 MSTORE PUSH1 0x01 MSTORE PUSH1 0x40 PUSH1 0x00
+  RETURN JUMPDEST PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
+
 tuple:
 
 unwrap-err-panic:
