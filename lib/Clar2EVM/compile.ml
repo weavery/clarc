@@ -183,6 +183,16 @@ and compile_expression env = function
     let b = compile_expression env b in
     EVM.and' a b
 
+  | DefaultTo (default_value, option_value) ->
+    begin match type_of_expression option_value with
+    | Optional _ ->
+      let cond_value = compile_expression env option_value in
+      let some_block = [] in  (* top of stack contains the unpacked value *)
+      let none_block = compile_expression env default_value in
+      compile_branch cond_value some_block none_block
+    | t -> unsupported_function "default-to" t
+    end
+
   | Div [a; b] ->
     let a = compile_expression env a in
     let b = compile_expression env b in
@@ -319,7 +329,7 @@ and compile_expression env = function
   | Keyword "stx-liquid-supply" -> unsupported "stx-liquid-supply"
   | Keyword "tx-sender" -> EVM.origin
 
-  | FunctionCall ("asserts!", [bool_expr; _]) ->
+  | FunctionCall ("asserts!", [bool_expr; _]) ->  (* TODO: thrown_value *)
     begin match type_of_expression bool_expr with
     | Bool ->
       let cond_value = compile_expression env bool_expr in

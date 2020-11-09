@@ -92,6 +92,19 @@ contract-of:
 
 default-to:
 
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (default-to 7 none))
+  > EOF
+  PUSH1 0x00 ISZERO PC PUSH1 0x0a ADD JUMPI PC PUSH1 0x08 ADD JUMP JUMPDEST
+  PUSH1 0x07 JUMPDEST PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (default-to 7 (some 9)))
+  > EOF
+  PUSH1 0x09 PUSH1 0x01 ISZERO PC PUSH1 0x0a ADD JUMPI PC PUSH1 0x08 ADD JUMP
+  JUMPDEST PUSH1 0x07 JUMPDEST PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN
+  STOP
+
 err:
 
   $ clarc -t opcode -f only-function=test <<EOF
