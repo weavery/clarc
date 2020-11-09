@@ -319,6 +319,16 @@ and compile_expression env = function
   | Keyword "stx-liquid-supply" -> unsupported "stx-liquid-supply"
   | Keyword "tx-sender" -> EVM.origin
 
+  | FunctionCall ("asserts!", [bool_expr; _]) ->
+    begin match type_of_expression bool_expr with
+    | Bool ->
+      let cond_value = compile_expression env bool_expr in
+      let then_block = [EVM.one] in
+      let else_block = EVM.revert (0, 0) in
+      compile_branch cond_value then_block else_block
+    | t -> unsupported_function "asserts!" t
+    end
+
   | FunctionCall ("get", [Identifier _; Identifier _]) ->  (* TODO *)
     [
       EVM.from_int 0x80;                 (* 128 bits *)

@@ -73,6 +73,13 @@ ax-max-len?:
 
 asserts!:
 
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (asserts! false (err 7)))
+  > EOF
+  PUSH1 0x00 ISZERO PC PUSH1 0x0c ADD JUMPI PUSH1 0x01 PC PUSH1 0x0a ADD JUMP
+  JUMPDEST PUSH1 0x00 DUP1 REVERT JUMPDEST PUSH1 0x00 MSTORE PUSH1 0x20
+  PUSH1 0x00 RETURN STOP
+
 at-block:
 
 begin:
