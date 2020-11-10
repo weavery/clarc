@@ -299,7 +299,7 @@ and compile_expression env = function
     let b = compile_expression env b in
     EVM.sub a b  (* TODO: handle underflow *)
 
-  | Try (input) ->
+  | Try input ->
     begin match type_of_expression input with
     | Optional _ ->
       let cond_value = compile_expression env input in
@@ -310,6 +310,16 @@ and compile_expression env = function
       let err_block = EVM.mstore_int 0 0 @ EVM.mstore 1 [] @ EVM.return2 in
       compile_branch cond_value [] err_block
     | t -> unsupported_function "try!" t
+    end
+
+  | UnwrapErrPanic input ->
+    begin match type_of_expression input with
+    | Response _ ->
+      let cond_value = compile_expression env input in
+      let ok_block = EVM.pop1 @ EVM.revert0 in
+      let err_block = [] in
+      compile_branch cond_value ok_block err_block
+    | t -> unsupported_function "unwrap-err-panic" t
     end
 
   | UnwrapPanic input ->

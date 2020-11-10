@@ -496,6 +496,20 @@ tuple:
 
 unwrap-err-panic:
 
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (unwrap-err-panic (err 7)))
+  > EOF
+  PUSH1 0x07 PUSH1 0x00 ISZERO PC PUSH1 0x0f ADD JUMPI POP PUSH1 0x00 DUP1
+  REVERT PC PUSH1 0x06 ADD JUMP JUMPDEST JUMPDEST PUSH1 0x00 MSTORE PUSH1 0x20
+  PUSH1 0x00 RETURN STOP
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (unwrap-err-panic (ok 7)))
+  > EOF
+  PUSH1 0x07 PUSH1 0x01 ISZERO PC PUSH1 0x0f ADD JUMPI POP PUSH1 0x00 DUP1
+  REVERT PC PUSH1 0x06 ADD JUMP JUMPDEST JUMPDEST PUSH1 0x00 MSTORE PUSH1 0x20
+  PUSH1 0x00 RETURN STOP
+
 unwrap-err!:
 
 unwrap-panic:
