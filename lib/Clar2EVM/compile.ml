@@ -312,14 +312,35 @@ and compile_expression env = function
     | t -> unsupported_function "try!" t
     end
 
+  | UnwrapErr (input, thrown_value) ->
+    begin match type_of_expression input with
+    | Response _ ->
+      let cond_value = compile_expression env input in
+      let ok_block = EVM.pop1 @ compile_expression env thrown_value @ EVM.mstore 0 [] @ EVM.return1 in
+      compile_branch cond_value ok_block []
+    | t -> unsupported_function "unwrap-err!" t
+    end
+
   | UnwrapErrPanic input ->
     begin match type_of_expression input with
     | Response _ ->
       let cond_value = compile_expression env input in
       let ok_block = EVM.pop1 @ EVM.revert0 in
-      let err_block = [] in
-      compile_branch cond_value ok_block err_block
+      compile_branch cond_value ok_block []
     | t -> unsupported_function "unwrap-err-panic" t
+    end
+
+  | Unwrap (input, thrown_value) ->
+    begin match type_of_expression input with
+    | Optional _ ->
+      let cond_value = compile_expression env input in
+      let none_block = compile_expression env thrown_value @ EVM.mstore 0 [] @ EVM.return1 in
+      compile_branch cond_value [] none_block
+    | Response _ ->
+      let cond_value = compile_expression env input in
+      let err_block = EVM.pop1 @ compile_expression env thrown_value @ EVM.mstore 0 [] @ EVM.return1 in
+      compile_branch cond_value [] err_block
+    | t -> unsupported_function "unwrap!" t
     end
 
   | UnwrapPanic input ->

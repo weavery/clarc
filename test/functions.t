@@ -494,6 +494,22 @@ try!:
 
 tuple:
 
+unwrap-err!:
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (unwrap-err! (err 7) 9))
+  > EOF
+  PUSH1 0x07 PUSH1 0x00 ISZERO PC PUSH1 0x15 ADD JUMPI POP PUSH1 0x09
+  PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN PC PUSH1 0x06 ADD JUMP
+  JUMPDEST JUMPDEST PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (unwrap-err! (ok 7) 9))
+  > EOF
+  PUSH1 0x07 PUSH1 0x01 ISZERO PC PUSH1 0x15 ADD JUMPI POP PUSH1 0x09
+  PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN PC PUSH1 0x06 ADD JUMP
+  JUMPDEST JUMPDEST PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
+
 unwrap-err-panic:
 
   $ clarc -t opcode -f only-function=test <<EOF
@@ -510,7 +526,35 @@ unwrap-err-panic:
   REVERT PC PUSH1 0x06 ADD JUMP JUMPDEST JUMPDEST PUSH1 0x00 MSTORE PUSH1 0x20
   PUSH1 0x00 RETURN STOP
 
-unwrap-err!:
+unwrap!:
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (unwrap! none 9))
+  > EOF
+  PUSH1 0x00 ISZERO PC PUSH1 0x0a ADD JUMPI PC PUSH1 0x10 ADD JUMP JUMPDEST
+  PUSH1 0x09 PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN JUMPDEST PUSH1 0x00
+  MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (unwrap! (some 7) 9))
+  > EOF
+  PUSH1 0x07 PUSH1 0x01 ISZERO PC PUSH1 0x0a ADD JUMPI PC PUSH1 0x10 ADD JUMP
+  JUMPDEST PUSH1 0x09 PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN JUMPDEST
+  PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (unwrap! (err 7) 9))
+  > EOF
+  PUSH1 0x07 PUSH1 0x00 ISZERO PC PUSH1 0x0a ADD JUMPI PC PUSH1 0x11 ADD JUMP
+  JUMPDEST POP PUSH1 0x09 PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN
+  JUMPDEST PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (unwrap! (ok 7) 9))
+  > EOF
+  PUSH1 0x07 PUSH1 0x01 ISZERO PC PUSH1 0x0a ADD JUMPI PC PUSH1 0x11 ADD JUMP
+  JUMPDEST POP PUSH1 0x09 PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN
+  JUMPDEST PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
 
 unwrap-panic:
 
@@ -541,8 +585,6 @@ unwrap-panic:
   PUSH1 0x07 PUSH1 0x01 ISZERO PC PUSH1 0x0a ADD JUMPI PC PUSH1 0x0b ADD JUMP
   JUMPDEST POP PUSH1 0x00 DUP1 REVERT JUMPDEST PUSH1 0x00 MSTORE PUSH1 0x20
   PUSH1 0x00 RETURN STOP
-
-unwrap!:
 
 use-trait:
 
