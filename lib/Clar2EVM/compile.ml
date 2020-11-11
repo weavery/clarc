@@ -323,10 +323,17 @@ and compile_expression env = function
     end
 
   | UnwrapPanic input ->
-    let input = compile_expression env input in
-    input @ compile_branch [EVM.DUP 1; EVM.ISZERO]
-      (EVM.pop @ EVM.revert0)
-      [EVM.SLOAD]
+    begin match type_of_expression input with
+    | Optional _ ->
+      let cond_value = compile_expression env input in
+      let none_block = EVM.revert0 in
+      compile_branch cond_value [] none_block
+    | Response _ ->
+      let cond_value = compile_expression env input in
+      let err_block = EVM.pop1 @ EVM.revert0 in
+      compile_branch cond_value [] err_block
+    | t -> unsupported_function "unwrap-panic" t
+    end
 
   | VarGet var ->
     let var_slot = lookup_variable_slot env var in

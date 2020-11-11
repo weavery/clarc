@@ -517,9 +517,30 @@ unwrap-panic:
   $ clarc -t opcode -f only-function=test <<EOF
   > (define-read-only (test) (unwrap-panic none))
   > EOF
-  PUSH1 0x00 DUP1 ISZERO ISZERO PC PUSH1 0x0f ADD JUMPI POP PUSH1 0x00 DUP1
-  REVERT PC PUSH1 0x07 ADD JUMP JUMPDEST SLOAD JUMPDEST PUSH1 0x00 MSTORE
-  PUSH1 0x20 PUSH1 0x00 RETURN STOP
+  PUSH1 0x00 ISZERO PC PUSH1 0x0a ADD JUMPI PC PUSH1 0x0a ADD JUMP JUMPDEST
+  PUSH1 0x00 DUP1 REVERT JUMPDEST PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00
+  RETURN STOP
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (unwrap-panic (some 7)))
+  > EOF
+  PUSH1 0x07 PUSH1 0x01 ISZERO PC PUSH1 0x0a ADD JUMPI PC PUSH1 0x0a ADD JUMP
+  JUMPDEST PUSH1 0x00 DUP1 REVERT JUMPDEST PUSH1 0x00 MSTORE PUSH1 0x20
+  PUSH1 0x00 RETURN STOP
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (unwrap-panic (err 7)))
+  > EOF
+  PUSH1 0x07 PUSH1 0x00 ISZERO PC PUSH1 0x0a ADD JUMPI PC PUSH1 0x0b ADD JUMP
+  JUMPDEST POP PUSH1 0x00 DUP1 REVERT JUMPDEST PUSH1 0x00 MSTORE PUSH1 0x20
+  PUSH1 0x00 RETURN STOP
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (unwrap-panic (ok 7)))
+  > EOF
+  PUSH1 0x07 PUSH1 0x01 ISZERO PC PUSH1 0x0a ADD JUMPI PC PUSH1 0x0b ADD JUMP
+  JUMPDEST POP PUSH1 0x00 DUP1 REVERT JUMPDEST PUSH1 0x00 MSTORE PUSH1 0x20
+  PUSH1 0x00 RETURN STOP
 
 unwrap!:
 
