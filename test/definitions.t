@@ -14,4 +14,4 @@ define-public:
 
 define-read-only:
 
-define-trait:
+define-trait: Not implemented yet.

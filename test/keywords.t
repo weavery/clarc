@@ -28,7 +28,7 @@ is-in-regtest:
   > EOF
   PUSH1 0x00 PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
 
-stx-liquid-supply:
+stx-liquid-supply: Not supported.
 
   $ clarc -t opcode -f only-function=test <<EOF
   > (define-read-only (test) stx-liquid-supply)

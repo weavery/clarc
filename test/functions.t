@@ -1,34 +1,41 @@
 https://docs.blockstack.org/references/language-functions
 
-add:
++: For two parameters. Without overflow checking.
 
   $ clarc -t opcode -f only-function=test <<EOF
   > (define-read-only (test) (+ 6 7))
   > EOF
   PUSH1 0x07 PUSH1 0x06 ADD PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
 
-sub:
+-: For two parameters. Without underflow checking.
 
   $ clarc -t opcode -f only-function=test <<EOF
   > (define-read-only (test) (- 6 7))
   > EOF
   PUSH1 0x07 PUSH1 0x06 SUB PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
 
-mul:
+*: For two parameters. Without overflow checking.
 
   $ clarc -t opcode -f only-function=test <<EOF
   > (define-read-only (test) (* 6 7))
   > EOF
   PUSH1 0x07 PUSH1 0x06 MUL PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
 
-div:
+/: For two parameters. Without division-by-zero checking.
 
   $ clarc -t opcode -f only-function=test <<EOF
   > (define-read-only (test) (/ 6 3))
   > EOF
   PUSH1 0x03 PUSH1 0x06 DIV PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
 
-le:
+<:
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (< 1 2))
+  > EOF
+  PUSH1 0x02 PUSH1 0x01 LT PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
+
+<=:
 
   $ clarc -t opcode -f only-function=test <<EOF
   > (define-read-only (test) (<= 1 2))
@@ -36,34 +43,20 @@ le:
   PUSH1 0x02 PUSH1 0x01 DUP2 DUP2 LT SWAP2 SWAP1 EQ OR PUSH1 0x00 MSTORE
   PUSH1 0x20 PUSH1 0x00 RETURN STOP
 
-lt:
-
-  $ clarc -t opcode -f only-function=test <<EOF
-  > (define-read-only (test) (< 1 2))
-  > EOF
-  PUSH1 0x02 PUSH1 0x01 LT PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
-
-ge:
-
-  $ clarc -t opcode -f only-function=test <<EOF
-  > (define-read-only (test) (>= 1 2))
-  > EOF
-  PUSH1 0x02 PUSH1 0x01 DUP2 DUP2 GT SWAP2 SWAP1 EQ OR PUSH1 0x00 MSTORE
-  PUSH1 0x20 PUSH1 0x00 RETURN STOP
-
-gt:
+>:
 
   $ clarc -t opcode -f only-function=test <<EOF
   > (define-read-only (test) (> 1 2))
   > EOF
   PUSH1 0x02 PUSH1 0x01 GT PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
 
-and:
+>=:
 
   $ clarc -t opcode -f only-function=test <<EOF
-  > (define-read-only (test) (and true false))
+  > (define-read-only (test) (>= 1 2))
   > EOF
-  PUSH1 0x00 PUSH1 0x01 AND PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
+  PUSH1 0x02 PUSH1 0x01 DUP2 DUP2 GT SWAP2 SWAP1 EQ OR PUSH1 0x00 MSTORE
+  PUSH1 0x20 PUSH1 0x00 RETURN STOP
 
 append:
 
@@ -80,15 +73,13 @@ asserts!:
   JUMPDEST PUSH1 0x00 DUP1 REVERT JUMPDEST PUSH1 0x00 MSTORE PUSH1 0x20
   PUSH1 0x00 RETURN STOP
 
-at-block:
-
-begin:
+at-block: Not implemented yet.
 
 concat:
 
-contract-call?:
+contract-call?: Not implemented yet.
 
-contract-of:
+contract-of: Not implemented yet.
 
 default-to:
 
@@ -129,7 +120,7 @@ ft-transfer?:
 
 get:
 
-get-block-info?:
+get-block-info?: Not implemented yet.
 
 hash160:
 
@@ -149,9 +140,9 @@ if:
   JUMPDEST PUSH1 0x07 JUMPDEST PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN
   STOP
 
-impl-trait:
+impl-trait: Not implemented yet.
 
-is-eq:
+is-eq: For two parameters.
 
   $ clarc -t opcode -f only-function=test <<EOF
   > (define-read-only (test) (is-eq true false))
@@ -338,7 +329,7 @@ match:
   PUSH1 0x08 ADD JUMP JUMPDEST PUSH1 0x05 JUMPDEST PUSH1 0x00 MSTORE PUSH1 0x20
   PUSH1 0x00 RETURN STOP
 
-mod:
+mod: Without division-by-zero checking.
 
   $ clarc -t opcode -f only-function=test <<EOF
   > (define-read-only (test) (mod 5 2))
@@ -370,14 +361,7 @@ ok:
   > EOF
   PUSH1 0x05 PUSH1 0x01 PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
 
-or:
-
-  $ clarc -t opcode -f only-function=test <<EOF
-  > (define-read-only (test) (or true false))
-  > EOF
-  PUSH1 0x00 PUSH1 0x01 OR PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
-
-pow:
+pow: Without overflow checking.
 
   $ clarc -t opcode -f only-function=test <<EOF
   > (define-read-only (test) (pow 2 3))
@@ -423,7 +407,7 @@ sha256:
   PUSH1 0x02 GAS STATICCALL POP PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN
   STOP
 
-sha512:
+sha512: Not implemented yet.
 
   $ clarc -t opcode -f only-function=test <<EOF
   > (define-read-only (test) (sha512 0))
@@ -433,7 +417,7 @@ sha512:
          
   [125]
 
-sha512/256:
+sha512/256: Not implemented yet.
 
   $ clarc -t opcode -f only-function=test <<EOF
   > (define-read-only (test) (sha512/256 0))
@@ -452,11 +436,11 @@ some:
 
 sqrti:
 
-stx-burn?:
+stx-burn?: Not supported.
 
-stx-get-balance:
+stx-get-balance: Not supported.
 
-stx-transfer?:
+stx-transfer?: Not supported.
 
 to-int:
 
@@ -586,7 +570,7 @@ unwrap-panic:
   JUMPDEST POP PUSH1 0x00 DUP1 REVERT JUMPDEST PUSH1 0x00 MSTORE PUSH1 0x20
   PUSH1 0x00 RETURN STOP
 
-use-trait:
+use-trait: Not implemented yet.
 
 var-get:
 

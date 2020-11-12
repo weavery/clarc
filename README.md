@@ -319,3 +319,103 @@ an important evolution for the future of smart contracts.
 [`panic.clar`]:      https://github.com/weavery/clarc/blob/master/etc/examples/panic.clar
 [`panic.bin`]:       https://gist.github.com/artob/945397b444402f6bea7512993608b02c
 [`panic.json`]:      https://github.com/weavery/clarc/blob/master/etc/examples/panic.json
+
+## Status
+
+### Supported Clarity features
+
+Feature | Type | Status | Notes
+------- | ---- | ------ | -----
+`*` | function | ✅ | For two parameters. Without overflow checking.
+`+` | function | ✅ | For two parameters. Without overflow checking.
+`-` | function | ✅ | For two parameters. Without underflow checking.
+`/` | function | ✅ | For two parameters. Without division-by-zero checking.
+`<` | function | ✅ |
+`<=` | function | ✅ |
+`>` | function | ✅ |
+`>=` | function | ✅ |
+`and` | operator | ✅ | For two parameters.
+`append` | function | 🚧 |
+`as-contract` | function | 🚧 |
+`asserts!` | function | ✅ |
+`at-block` | function | ❌ | Not implemented yet.
+`ax-max-len?` | function | 🚧 |
+`begin` | operator | 🚧 |
+`block-height` | keyword | ✅ |
+`buff` | literal | ✅ |
+`burn-block-height` | keyword | ✅ |
+`concat` | function | 🚧 |
+`contract-call?` | function | ❌ | Not implemented yet.
+`contract-caller` | keyword | ✅ |
+`contract-of` | function | ❌ | Not implemented yet.
+`default-to` | function | ✅ |
+`err` | function | ✅ |
+`false` | literal | ✅ |
+`filter` | function | 🚧 |
+`fold` | function | 🚧 |
+`ft-get-balance` | function | 🚧 |
+`ft-mint?` | function | 🚧 |
+`ft-transfer?` | function | 🚧 |
+`get` | function | 🚧 |
+`get-block-info?` | function | ❌ | Not implemented yet.
+`hash160` | function | ✅ |
+`if` | function | ✅ |
+`impl-trait` | function | ❌ | Not implemented yet.
+`int` | literal | ✅ |
+`is-eq` | function | ✅ | For two parameters.
+`is-err` | function | ✅ |
+`is-in-regtest` | keyword | ✅ |
+`is-none` | function | ✅ |
+`is-ok` | function | ✅ |
+`is-some` | function | ✅ |
+`keccak256` | function | ✅ |
+`len` | function | 🚧 |
+`let` | function | 🚧 |
+`list` | function | 🚧 |
+`map` | function | 🚧 |
+`map-delete` | function | 🚧 |
+`map-get?` | function | ✅ |
+`map-insert` | function | 🚧 |
+`map-set` | function | 🚧 |
+`match` | function | ✅ |
+`mod` | function | ✅ | Without division-by-zero checking.
+`nft-get-owner?` | function | 🚧 |
+`nft-mint?` | function | 🚧 |
+`nft-transfer?` | function | 🚧 |
+`none` | literal | ✅ |
+`not` | function | ✅ |
+`ok` | function | ✅ |
+`or` | operator | ✅ | For two parameters.
+`pow` | function | ✅ | Without overflow checking.
+`principal` | literal | 🚧 |
+`principal-of?` | function | 🚧 |
+`print` | function | ✅ |
+`secp256k1-recover?` | function | 🚧 |
+`secp256k1-verify` | function | 🚧 |
+`sha256` | function | ✅ |
+`sha512` | function | ❌ | Not implemented yet.
+`sha512/256` | function | ❌ | Not implemented yet.
+`some` | function | ✅ |
+`sqrti` | function | 🚧 |
+`string` | literal | ✅ |
+`stx-burn?` | function | ❌ | Not supported.
+`stx-get-balance` | function | ❌ | Not supported.
+`stx-liquid-supply` | keyword | ❌ | Not supported.
+`stx-transfer?` | function | ❌ | Not supported.
+`to-int` | function | 🚧 |
+`to-uint` | function | 🚧 |
+`true` | literal | ✅ |
+`try!` | function | ✅ |
+`tuple` | function | 🚧 |
+`tx-sender` | keyword | ✅ |
+`uint` | literal | ✅ |
+`unwrap!` | function | ✅ |
+`unwrap-err!` | function | ✅ |
+`unwrap-err-panic` | function | ✅ |
+`unwrap-panic` | function | ✅ |
+`use-trait` | function | ❌ | Not implemented yet.
+`var-get` | function | ✅ |
+`var-set` | function | ✅ |
+`xor` | function | ✅ |
+
+**Legend**: ❌ = not supported. 🚧 = work in progress. ✅ = supported.
