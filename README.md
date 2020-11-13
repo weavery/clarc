@@ -371,7 +371,7 @@ Feature | Type | Status | Notes
 `keccak256` | function | ✅ |
 `len` | function | ✅ | Only for literals.
 `let` | function | 🚧 |
-`list` | function | 🚧 |
+`list` | function | ✅ |
 `map` | function | 🚧 |
 `map-delete` | function | 🚧 |
 `map-get?` | function | ✅ |

@@ -13,8 +13,9 @@ let rec type_of_expression = function
   | Identifier _ -> Clarity.Unit  (* FIXME: unimplemented "type_of_expression for variable bindings" *)
 
   | TupleExpression _ -> unimplemented "type_of_expression for tuple expressions"
-  | ListExpression _ -> unimplemented "type_of_expression for list expressions"
-  | SomeExpression expr -> Clarity.Optional (type_of_expression expr)
+  | ListExpression [] -> List (0, Unit)
+  | ListExpression xs -> List (List.length xs, type_of_expression (List.hd xs))
+  | SomeExpression expr -> Optional (type_of_expression expr)
   | Ok expr -> Response (type_of_expression expr, Unit)
   | Err expr -> Response (Unit, type_of_expression expr)
 

@@ -257,9 +257,12 @@ and compile_expression env = function
 
   | Len x ->
     begin match type_of_expression x with
-    | String (n, _) | Buff n -> [EVM.from_int n]
+    | String (n, _) | Buff n | List (n, _) -> [EVM.from_int n]
     | t -> unsupported_function "len" t
     end
+
+  | ListExpression xs ->
+    List.rev (List.concat_map (compile_expression env) xs) @ [EVM.from_int (List.length xs)]
 
   | Lt (a, b) ->
     let a = compile_expression env a in

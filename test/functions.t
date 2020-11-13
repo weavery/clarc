@@ -313,9 +313,35 @@ len: Only for literals.
   > EOF
   PUSH1 0x04 PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
 
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (len (list)))
+  > EOF
+  PUSH1 0x00 PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (len (list 1 2 3)))
+  > EOF
+  PUSH1 0x03 PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
+
 let:
 
 list:
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (list))
+  > EOF
+  PUSH1 0x00 PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (list 7))
+  > EOF
+  PUSH1 0x07 PUSH1 0x01 PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (list 1 2 3))
+  > EOF
+  PUSH1 0x03 PUSH1 0x02 PUSH1 0x01 PUSH1 0x03 PUSH1 0x00 MSTORE PUSH1 0x20
+  PUSH1 0x00 RETURN STOP
 
 map:
 
