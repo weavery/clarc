@@ -60,6 +60,7 @@ let rec type_of_expression = function
   | FunctionCall ("keccak256", _) -> Buff 32
   | FunctionCall ("map-set", _) -> Bool
   | FunctionCall ("map-get?", _) -> Optional (Tuple [])
+  | FunctionCall ("print", [expr]) -> type_of_expression expr
   | FunctionCall ("sha256", _) -> Buff 32
   | FunctionCall ("sha512", _) -> Buff 64
   | FunctionCall ("sha512/256", _) -> Buff 32

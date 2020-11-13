@@ -370,11 +370,12 @@ pow: Without overflow checking.
 
 principal-of?:
 
-print:
+print: Only for literals. Without a meaningful return value.
 
   $ clarc -t opcode -f only-function=test <<EOF
   > (define-read-only (test) (print 123))
   > EOF
+  PUSH1 0x00
   PUSH32 0x4e0c1d1d00000000000000000000000000000000000000000000000000000000
   PUSH1 0x00 MSTORE
   PUSH32 0x0000007b00000000000000000000000000000000000000000000000000000000
@@ -385,6 +386,7 @@ print:
   $ clarc -t opcode -f only-function=test <<EOF
   > (define-read-only (test) (print "Hello, world!"))
   > EOF
+  PUSH1 0x00
   PUSH32 0x41304fac00000000000000000000000000000000000000000000000000000000
   PUSH1 0x00 MSTORE
   PUSH32 0x0000000d48656c6c6f2c20776f726c6421000000000000000000000000000000

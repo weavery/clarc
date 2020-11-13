@@ -389,7 +389,7 @@ Feature | Type | Status | Notes
 `pow` | function | ✅ | Without overflow checking.
 `principal` | literal | 🚧 |
 `principal-of?` | function | 🚧 |
-`print` | function | ✅ |
+`print` | function | ✅ | Only for literals. Without a meaningful return value.
 `secp256k1-recover?` | function | 🚧 |
 `secp256k1-verify` | function | 🚧 |
 `sha256` | function | ✅ |

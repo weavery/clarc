@@ -481,6 +481,7 @@ and compile_static_print_call value =
   let payload = EVM.ABI.encode_with_signature signature args in
   let payload_size = String.length payload in
   let mstore = EVM.mstore_bytes 0 payload in
+  [EVM.zero] @  (* TODO: the return value *)
   mstore @ EVM.staticcall log_addr (0, payload_size) (0, 0) @ EVM.pop
 
 and compile_mstore_of_expression ?(offset=0) env expr =

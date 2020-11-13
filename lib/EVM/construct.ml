@@ -11,8 +11,9 @@ let rec addr_of_int z =
 
 and ptr_of_int z = z
 
-and from_string s =
-  PUSH (String.length s, s)
+and from_string = function
+  | s when String.length s <= 32 -> PUSH (String.length s, s)
+  | _ -> unimplemented ""  (* TODO *)
 
 and from_big_int z =
   match Big_int.int_of_big_int_opt z with
