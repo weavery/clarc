@@ -255,6 +255,12 @@ and compile_expression env = function
     let b = compile_expression env b in
     EVM.le a b  (* TODO: signed vs unsigned *)
 
+  | Len x ->
+    begin match type_of_expression x with
+    | String (n, _) | Buff n -> [EVM.from_int n]
+    | t -> unsupported_function "len" t
+    end
+
   | Lt (a, b) ->
     let a = compile_expression env a in
     let b = compile_expression env b in
@@ -517,8 +523,8 @@ and compile_literal = function
     else unimplemented "large buff literals (32+ bytes)"  (* TODO *)
   | StringLiteral s ->
     let len = String.length s in
-    if len = 0 then [EVM.zero]
-    else if len <= 32 then [EVM.from_string s]
+    if len = 0 then [EVM.zero; EVM.zero]
+    else if len <= 32 then [EVM.from_string s; EVM.from_int len]
     else unimplemented "large string literals (32+ bytes)"  (* TODO *)
   | TupleLiteral kvs -> compile_tuple_literal kvs
 

@@ -66,13 +66,13 @@ string:
   $ clarc -t opcode -f only-function=test <<EOF
   > (define-read-only (test) "")
   > EOF
-  PUSH1 0x00 PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
+  PUSH1 0x00 PUSH1 0x00 PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
 
   $ clarc -t opcode -f only-function=test <<EOF
   > (define-read-only (test) "Hello, world!")
   > EOF
-  PUSH13 0x48656c6c6f2c20776f726c6421 PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00
-  RETURN STOP
+  PUSH13 0x48656c6c6f2c20776f726c6421 PUSH1 0x0d PUSH1 0x00 MSTORE PUSH1 0x20
+  PUSH1 0x00 RETURN STOP
 
 list:
 

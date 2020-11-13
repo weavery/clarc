@@ -369,7 +369,7 @@ Feature | Type | Status | Notes
 `is-ok` | function | ✅ |
 `is-some` | function | ✅ |
 `keccak256` | function | ✅ |
-`len` | function | 🚧 |
+`len` | function | ✅ | Only for literals.
 `let` | function | 🚧 |
 `list` | function | 🚧 |
 `map` | function | 🚧 |

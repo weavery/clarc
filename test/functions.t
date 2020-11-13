@@ -296,7 +296,22 @@ keccak256:
          
   [125]
 
-len:
+len: Only for literals.
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (len ""))
+  > EOF
+  PUSH1 0x00 PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (len "Hello, world!"))
+  > EOF
+  PUSH1 0x0d PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (len 0xDEADBEEF))
+  > EOF
+  PUSH1 0x04 PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
 
 let:
 
