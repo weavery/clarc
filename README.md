@@ -335,7 +335,7 @@ Feature | Type | Status | Notes
 `>` | function | ✅ |
 `>=` | function | ✅ |
 `and` | operator | ✅ | For two parameters.
-`append` | function | 🚧 |
+`append` | function | ✅ |
 `as-contract` | operator | 🚧 |
 `as-max-len?` | operator | 🚧 |
 `asserts!` | function | ✅ |

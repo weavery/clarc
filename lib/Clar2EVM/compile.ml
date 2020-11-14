@@ -262,7 +262,7 @@ and compile_expression env = function
     end
 
   | ListExpression xs ->
-    List.rev (List.concat_map (compile_expression env) xs) @ [EVM.from_int (List.length xs)]
+    List.concat_map (compile_expression env) xs @ [EVM.from_int (List.length xs)]
 
   | Lt (a, b) ->
     let a = compile_expression env a in
@@ -385,6 +385,15 @@ and compile_expression env = function
   | Keyword "is-in-regtest" -> compile_literal (BoolLiteral false)
   | Keyword "stx-liquid-supply" -> unsupported "stx-liquid-supply"
   | Keyword "tx-sender" -> EVM.origin
+
+  | FunctionCall ("append", [list; element]) ->
+    begin match type_of_expression list, type_of_expression element with
+    | List (n, e1), e2 when e1 = e2 ->
+      let list = compile_expression env list in
+      let element = compile_expression env element in
+      list @ EVM.pop1 @ element @ [EVM.from_int (n + 1)]
+    | t, e -> unsupported_function2 "append" t e
+    end
 
   | FunctionCall ("asserts!", [bool_expr; _]) ->  (* TODO: thrown_value *)
     begin match type_of_expression bool_expr with

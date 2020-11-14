@@ -56,6 +56,12 @@ let rec type_of_expression = function
   | Keyword "tx-sender" -> Principal
   | Keyword id -> unimplemented (Printf.sprintf "type_of_expression for %s" id)
 
+  | FunctionCall ("append", [list; element]) ->
+    begin match type_of_expression list, type_of_expression element with
+    | List (n, e1), e2 when e1 = e2 -> List (n + 1, e1)
+    | t, e -> unsupported_function2 "append" t e
+    end
+
   | FunctionCall ("get", [_; tuple]) -> type_of_expression tuple
   | FunctionCall ("hash160", _) -> Buff 20
   | FunctionCall ("keccak256", _) -> Buff 32

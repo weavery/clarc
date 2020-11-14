@@ -60,6 +60,12 @@ https://docs.blockstack.org/references/language-functions
 
 append:
 
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (append (list 5 6 7) 8))
+  > EOF
+  PUSH1 0x05 PUSH1 0x06 PUSH1 0x07 PUSH1 0x03 POP PUSH1 0x08 PUSH1 0x04
+  PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
+
 asserts!:
 
   $ clarc -t opcode -f only-function=test <<EOF
@@ -313,7 +319,7 @@ list:
   $ clarc -t opcode -f only-function=test <<EOF
   > (define-read-only (test) (list 1 2 3))
   > EOF
-  PUSH1 0x03 PUSH1 0x02 PUSH1 0x01 PUSH1 0x03 PUSH1 0x00 MSTORE PUSH1 0x20
+  PUSH1 0x01 PUSH1 0x02 PUSH1 0x03 PUSH1 0x03 PUSH1 0x00 MSTORE PUSH1 0x20
   PUSH1 0x00 RETURN STOP
 
 map:
