@@ -60,10 +60,6 @@ https://docs.blockstack.org/references/language-functions
 
 append:
 
-as-contract:
-
-ax-max-len?:
-
 asserts!:
 
   $ clarc -t opcode -f only-function=test <<EOF
@@ -73,13 +69,7 @@ asserts!:
   JUMPDEST PUSH1 0x00 DUP1 REVERT JUMPDEST PUSH1 0x00 MSTORE PUSH1 0x20
   PUSH1 0x00 RETURN STOP
 
-at-block: Not implemented yet.
-
 concat:
-
-contract-call?: Not implemented yet.
-
-contract-of: Not implemented yet.
 
 default-to:
 
@@ -118,10 +108,6 @@ ft-mint?:
 
 ft-transfer?:
 
-get:
-
-get-block-info?: Not implemented yet.
-
 hash160:
 
   $ clarc -t opcode -f only-function=test <<EOF
@@ -130,17 +116,6 @@ hash160:
   PUSH1 0x00 PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 PUSH1 0x10 PUSH1 0x00
   PUSH1 0x03 GAS STATICCALL POP PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN
   STOP
-
-if:
-
-  $ clarc -t opcode -f only-function=test <<EOF
-  > (define-read-only (test) (if true 5 7))
-  > EOF
-  PUSH1 0x01 ISZERO PC PUSH1 0x0c ADD JUMPI PUSH1 0x05 PC PUSH1 0x08 ADD JUMP
-  JUMPDEST PUSH1 0x07 JUMPDEST PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN
-  STOP
-
-impl-trait: Not implemented yet.
 
 is-eq: For two parameters.
 
@@ -323,8 +298,6 @@ len: Only for literals.
   > EOF
   PUSH1 0x03 PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
 
-let:
-
 list:
 
   $ clarc -t opcode -f only-function=test <<EOF
@@ -361,15 +334,6 @@ map-insert:
 
 map-set:
 
-match:
-
-  $ clarc -t opcode -f only-function=test <<EOF
-  > (define-read-only (test) (match (some 3) x 5 7))
-  > EOF
-  PUSH1 0x03 PUSH1 0x01 ISZERO ISZERO PC PUSH1 0x0d ADD JUMPI POP PUSH1 0x07 PC
-  PUSH1 0x08 ADD JUMP JUMPDEST PUSH1 0x05 JUMPDEST PUSH1 0x00 MSTORE PUSH1 0x20
-  PUSH1 0x00 RETURN STOP
-
 mod: Without division-by-zero checking.
 
   $ clarc -t opcode -f only-function=test <<EOF
@@ -384,6 +348,11 @@ nft-mint?:
 nft-transfer?:
 
 not:
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (not false))
+  > EOF
+  PUSH1 0x00 ISZERO PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
 
   $ clarc -t opcode -f only-function=test <<EOF
   > (define-read-only (test) (not true))
@@ -437,9 +406,9 @@ print: Only for literals. Without a meaningful return value.
   PUSH20 0x000000000000000000636f6e736f6c652e6c6f67 GAS STATICCALL POP
   PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
 
-secp256k1-recover?:
+secp256k1-recover?: Not implemented yet.
 
-secp256k1-verify:
+secp256k1-verify: Not implemented yet.
 
 sha256:
 
@@ -477,7 +446,7 @@ some:
   > EOF
   PUSH1 0x05 PUSH1 0x01 PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
 
-sqrti:
+sqrti: Not implemented yet.
 
 stx-burn?: Not supported.
 
@@ -518,8 +487,6 @@ try!:
   PUSH1 0x07 PUSH1 0x01 ISZERO PC PUSH1 0x0a ADD JUMPI PC PUSH1 0x13 ADD JUMP
   JUMPDEST PUSH1 0x00 PUSH1 0x00 MSTORE PUSH1 0x01 MSTORE PUSH1 0x40 PUSH1 0x00
   RETURN JUMPDEST PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
-
-tuple:
 
 unwrap-err!:
 
@@ -611,29 +578,6 @@ unwrap-panic:
   > EOF
   PUSH1 0x07 PUSH1 0x01 ISZERO PC PUSH1 0x0a ADD JUMPI PC PUSH1 0x0b ADD JUMP
   JUMPDEST POP PUSH1 0x00 DUP1 REVERT JUMPDEST PUSH1 0x00 MSTORE PUSH1 0x20
-  PUSH1 0x00 RETURN STOP
-
-use-trait: Not implemented yet.
-
-var-get:
-
-  $ clarc -t opcode -f only-function=test <<EOF
-  > (define-data-var counter int 0)
-  > (define-read-only (test)
-  >   (var-get counter))
-  > EOF
-  PUSH1 0x00 SLOAD PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
-
-var-set:
-
-  $ clarc -t opcode -f only-function=test <<EOF
-  > (define-data-var counter int 0)
-  > (define-public (test)
-  >  (begin
-  >    (var-set counter 42)
-  >    (ok true)))
-  > EOF
-  PUSH1 0x2a PUSH1 0x00 SSTORE PUSH1 0x01 PUSH1 0x00 MSTORE PUSH1 0x20
   PUSH1 0x00 RETURN STOP
 
 xor:

@@ -336,18 +336,18 @@ Feature | Type | Status | Notes
 `>=` | function | ✅ |
 `and` | operator | ✅ | For two parameters.
 `append` | function | 🚧 |
-`as-contract` | function | 🚧 |
+`as-contract` | operator | 🚧 |
+`as-max-len?` | operator | 🚧 |
 `asserts!` | function | ✅ |
-`at-block` | function | ❌ | Not implemented yet.
-`ax-max-len?` | function | 🚧 |
+`at-block` | operator | ❌ | Not implemented yet.
 `begin` | operator | 🚧 |
 `block-height` | keyword | ✅ |
 `buff` | literal | ✅ |
 `burn-block-height` | keyword | ✅ |
 `concat` | function | 🚧 |
-`contract-call?` | function | ❌ | Not implemented yet.
+`contract-call?` | operator | ❌ | Not implemented yet.
 `contract-caller` | keyword | ✅ |
-`contract-of` | function | ❌ | Not implemented yet.
+`contract-of` | operator | ❌ | Not implemented yet.
 `default-to` | function | ✅ |
 `err` | function | ✅ |
 `false` | literal | ✅ |
@@ -356,11 +356,11 @@ Feature | Type | Status | Notes
 `ft-get-balance` | function | 🚧 |
 `ft-mint?` | function | 🚧 |
 `ft-transfer?` | function | 🚧 |
-`get` | function | 🚧 |
-`get-block-info?` | function | ❌ | Not implemented yet.
+`get` | operator | 🚧 |
+`get-block-info?` | operator | ❌ | Not implemented yet.
 `hash160` | function | ✅ |
-`if` | function | ✅ |
-`impl-trait` | function | ❌ | Not implemented yet.
+`if` | operator | ✅ |
+`impl-trait` | operator | ❌ | Not implemented yet.
 `int` | literal | ✅ |
 `is-eq` | function | ✅ | For two parameters.
 `is-err` | function | ✅ |
@@ -370,14 +370,14 @@ Feature | Type | Status | Notes
 `is-some` | function | ✅ |
 `keccak256` | function | ✅ |
 `len` | function | ✅ | Only for literals.
-`let` | function | 🚧 |
+`let` | operator | 🚧 |
 `list` | function | ✅ |
 `map` | function | 🚧 |
 `map-delete` | function | 🚧 |
 `map-get?` | function | ✅ |
 `map-insert` | function | 🚧 |
 `map-set` | function | 🚧 |
-`match` | function | ✅ |
+`match` | operator | ✅ |
 `mod` | function | ✅ | Without division-by-zero checking.
 `nft-get-owner?` | function | 🚧 |
 `nft-mint?` | function | 🚧 |
@@ -390,13 +390,13 @@ Feature | Type | Status | Notes
 `principal` | literal | 🚧 |
 `principal-of?` | function | 🚧 |
 `print` | function | ✅ | Only for literals. Without a meaningful return value.
-`secp256k1-recover?` | function | 🚧 |
-`secp256k1-verify` | function | 🚧 |
+`secp256k1-recover?` | function | ❌ | Not implemented yet.
+`secp256k1-verify` | function | ❌ | Not implemented yet.
 `sha256` | function | ✅ |
 `sha512` | function | ❌ | Not implemented yet.
 `sha512/256` | function | ❌ | Not implemented yet.
 `some` | function | ✅ |
-`sqrti` | function | 🚧 |
+`sqrti` | function | ❌ | Not implemented yet.
 `string` | literal | ✅ |
 `stx-burn?` | function | ❌ | Not supported.
 `stx-get-balance` | function | ❌ | Not supported.
@@ -406,16 +406,16 @@ Feature | Type | Status | Notes
 `to-uint` | function | 🚧 |
 `true` | literal | ✅ |
 `try!` | function | ✅ |
-`tuple` | function | 🚧 |
+`tuple` | operator | 🚧 |
 `tx-sender` | keyword | ✅ |
 `uint` | literal | ✅ |
 `unwrap!` | function | ✅ |
 `unwrap-err!` | function | ✅ |
 `unwrap-err-panic` | function | ✅ |
 `unwrap-panic` | function | ✅ |
-`use-trait` | function | ❌ | Not implemented yet.
-`var-get` | function | ✅ |
-`var-set` | function | ✅ |
+`use-trait` | operator | ❌ | Not implemented yet.
+`var-get` | operator | ✅ |
+`var-set` | operator | ✅ |
 `xor` | function | ✅ |
 
 **Legend**: ❌ = not supported. 🚧 = work in progress. ✅ = supported.
