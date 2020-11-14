@@ -60,6 +60,10 @@ let clarc verbose paths output target _optimize features =
       let program = deployer @ program in
       let printf = Format.fprintf output_formatter in
       printf "@[<hov>%a@]@." EVM.print_program_as_opcode program
+    | Debug ->
+      let (_, program) = Clar2EVM.compile_contract program ~features in
+      let printf = Format.fprintf output_formatter in
+      printf "@[<hov>%a@]@." EVM.print_debug program
   in
 
   let process_file path =

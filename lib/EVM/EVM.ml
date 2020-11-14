@@ -8,3 +8,4 @@
 #include "decode.ml"
 #include "encode.ml"
 #include "print.ml"
+#include "debug.ml"

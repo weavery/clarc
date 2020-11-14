@@ -8,6 +8,8 @@
   abi.mli
   construct.ml
   construct.mli
+  debug.ml
+  debug.mli
   decode.ml
   decode.mli
   encode.ml

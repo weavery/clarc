@@ -8,3 +8,4 @@
 #include "decode.mli"
 #include "encode.mli"
 #include "print.mli"
+#include "debug.mli"
