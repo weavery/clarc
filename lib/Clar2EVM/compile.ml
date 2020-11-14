@@ -405,6 +405,15 @@ and compile_expression env = function
     | t -> unsupported_function "asserts!" t
     end
 
+  | FunctionCall ("concat", [list1; list2]) ->
+    begin match type_of_expression list1, type_of_expression list2 with
+    | List (n1, e1), List (n2, e2) when e1 = e2 ->
+      let list1 = compile_expression env list1 in
+      let list2 = compile_expression env list2 in
+      list1 @ EVM.pop1 @ list2 @ EVM.pop1 @ [EVM.from_int (n1 + n2)]
+    | t1, t2 -> unsupported_function2 "concat" t1 t2
+    end
+
   | FunctionCall ("get", [Identifier _; Identifier _]) ->  (* TODO *)
     [
       EVM.from_int 0x80;                 (* 128 bits *)

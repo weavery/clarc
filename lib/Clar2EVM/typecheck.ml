@@ -62,6 +62,12 @@ let rec type_of_expression = function
     | t, e -> unsupported_function2 "append" t e
     end
 
+  | FunctionCall ("concat", [list1; list2]) ->
+    begin match type_of_expression list1, type_of_expression list2 with
+    | List (n1, e1), List (n2, e2) when e1 = e2 -> List (n1 + n2, e1)
+    | t1, t2 -> unsupported_function2 "concat" t1 t2
+    end
+
   | FunctionCall ("get", [_; tuple]) -> type_of_expression tuple
   | FunctionCall ("hash160", _) -> Buff 20
   | FunctionCall ("keccak256", _) -> Buff 32

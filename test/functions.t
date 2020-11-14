@@ -75,7 +75,13 @@ asserts!:
   JUMPDEST PUSH1 0x00 DUP1 REVERT JUMPDEST PUSH1 0x00 MSTORE PUSH1 0x20
   PUSH1 0x00 RETURN STOP
 
-concat:
+concat: Only for lists.
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (concat (list 5 6) (list 7 8)))
+  > EOF
+  PUSH1 0x05 PUSH1 0x06 PUSH1 0x02 POP PUSH1 0x07 PUSH1 0x08 PUSH1 0x02 POP
+  PUSH1 0x04 PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
 
 default-to:
 

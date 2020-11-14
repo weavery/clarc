@@ -344,7 +344,7 @@ Feature | Type | Status | Notes
 `block-height` | keyword | ✅ |
 `buff` | literal | ✅ |
 `burn-block-height` | keyword | ✅ |
-`concat` | function | 🚧 |
+`concat` | function | ✅ | Only for lists.
 `contract-call?` | operator | ❌ | Not implemented yet.
 `contract-caller` | keyword | ✅ |
 `contract-of` | operator | ❌ | Not implemented yet.
