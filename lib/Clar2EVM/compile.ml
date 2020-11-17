@@ -1,8 +1,22 @@
 (* This is free and unencumbered software released into the public domain. *)
 
 type context =
-  { vars: string list;
-    funs: string list; }
+  { global_vars: string list;
+    global_funs: string list;
+    local_vars: (string * int) list; }
+
+let make_context global_vars global_funs local_vars =
+  { global_vars; global_funs; local_vars; }
+
+let extend_context context local_vars =
+  { global_vars = context.global_vars;
+    global_funs = context.global_funs;
+    local_vars = local_vars @ context.local_vars; }
+
+let _dump_context context =
+  let dump_local_var (n, i) = Printf.eprintf "\t(%s, %d)" n i in
+  Printf.eprintf "local_vars=%d\t" (List.length context.local_vars);
+  List.iter dump_local_var context.local_vars
 
 let unimplemented_function name type' =
   unimplemented (Printf.sprintf "(%s %s)" name (Clarity.type_to_string type'))
@@ -42,12 +56,12 @@ let rec compile_contract ?(features=[]) program =
   match only_function with
   | Some fn ->
     let funs = funs |> List.filter (fun f -> fn = name_of f) in
-    let globals = { vars = List.map name_of vars; funs = List.map name_of funs; } in
+    let globals = make_context (List.map name_of vars) (List.map name_of funs) [] in
     let program = compile_program features globals funs in
     let payload = link_program program in
     ([], payload)
   | None ->
-    let globals = { vars = List.map name_of vars; funs = List.map name_of funs; } in
+    let globals = make_context (List.map name_of vars) (List.map name_of funs) [] in
     let dispatcher = compile_dispatcher funs in
     let program = compile_program features globals funs in
     let payload = link_program (dispatcher @ program) in
@@ -207,6 +221,14 @@ and compile_expression env = function
     let b = compile_expression env b in
     EVM.gt a b  (* TODO: signed vs unsigned *)
 
+  | Identifier id -> (* _dump_context env; *)
+    begin match List.find_opt (fun (name, _) -> name = id) env.local_vars with
+    | None -> failwith (Printf.sprintf "unbound variable: %s" id)
+    | Some (_, local_var_index) ->
+      let stack_slot = (List.length env.local_vars) - local_var_index in
+      EVM.dup stack_slot
+    end
+
   | If (cond_expr, then_branch, else_branch) ->
     begin match type_of_expression cond_expr with
     | Bool ->
@@ -260,6 +282,19 @@ and compile_expression env = function
     | String (n, _) | Buff n | List (n, _) -> [EVM.from_int n]
     | t -> unsupported_function "len" t
     end
+
+  | Let (bindings, body) ->
+    let local_var_count = List.length env.local_vars in
+    let compile_binding_index index (name, _) = (name, local_var_count + index) in
+    let compile_binding_expr (_, expr) = compile_expression env expr in
+    let env = extend_context env (List.mapi compile_binding_index bindings) in
+    let last_body_index = (List.length body) - 1 in
+    let compile_body_expr index expr =
+      compile_expression env expr @
+        if index < last_body_index then EVM.pop1 else []
+    in
+    List.map compile_binding_expr bindings @
+      List.mapi compile_body_expr body |> List.concat
 
   | ListExpression xs ->
     List.concat_map (compile_expression env) xs @ [EVM.from_int (List.length xs)]
@@ -596,12 +631,12 @@ and mangle_name = function
     String.uncapitalize_ascii (String.concat "" words)
 
 and lookup_variable_slot env symbol =
-  match lookup_symbol env.vars symbol with
+  match lookup_symbol env.global_vars symbol with
   | None -> failwith (Printf.sprintf "unknown variable: %s" symbol)
   | Some index -> index
 
 and lookup_function_block env symbol =
-  match lookup_symbol env.funs symbol with
+  match lookup_symbol env.global_funs symbol with
   | None -> failwith (Printf.sprintf "unknown function: %s" symbol)
   | Some index -> 1 + index
 

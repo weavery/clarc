@@ -36,6 +36,37 @@ impl-trait: Not implemented yet.
 
 let:
 
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (let ((x 7)) x))
+  > EOF
+  PUSH1 0x07 DUP1 PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN STOP
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (let ((x 7) (y 9)) x))
+  > EOF
+  PUSH1 0x07 PUSH1 0x09 DUP2 PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN
+  STOP
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (let ((x 7) (y 9)) y))
+  > EOF
+  PUSH1 0x07 PUSH1 0x09 DUP1 PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN
+  STOP
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (let ((x 7)) (let ((x 9)) x)))
+  > EOF
+  PUSH1 0x07 PUSH1 0x09 DUP1 PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN
+  STOP
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (let ((x 7)) y))
+  > EOF
+  clarc: internal error, uncaught exception:
+         Failure("unbound variable: y")
+         
+  [125]
+
 match:
 
   $ clarc -t opcode -f only-function=test <<EOF
