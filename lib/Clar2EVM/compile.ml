@@ -179,348 +179,351 @@ and compile_private_function _features env index (_, _, body) =
   in
   (1 + index, prelude @ body @ postlude)
 
-and compile_expression env = function
-  | Literal lit -> compile_literal lit
-  | TupleExpression [("key", key)] -> compile_expression env key
-  | TupleExpression _ -> unimplemented "arbitrary tuple expressions"  (* TODO *)
+and compile_expression env expr =
+  let rec compile sp = function
+    | Clarity.Literal lit -> compile_literal lit
+    | TupleExpression [("key", key)] -> compile sp key
+    | TupleExpression _ -> unimplemented "arbitrary tuple expressions"  (* TODO *)
 
-  | Add [a; b] ->
-    let a = compile_expression env a in
-    let b = compile_expression env b in
-    EVM.add a b  (* TODO: handle overflow *)
+    | Add [a; b] ->
+      let a = compile sp a in
+      let b = compile sp b in
+      EVM.add a b  (* TODO: handle overflow *)
 
-  | And [a; b] ->
-    let a = compile_expression env a in
-    let b = compile_expression env b in
-    EVM.and' a b
+    | And [a; b] ->
+      let a = compile sp a in
+      let b = compile sp b in
+      EVM.and' a b
 
-  | DefaultTo (default_value, option_value) ->
-    begin match type_of_expression option_value with
-    | Optional _ ->
-      let cond_value = compile_expression env option_value in
-      let some_block = [] in  (* top of stack contains the unpacked value *)
-      let none_block = compile_expression env default_value in
-      compile_branch cond_value some_block none_block
-    | t -> unsupported_function "default-to" t
+    | DefaultTo (default_value, option_value) ->
+      begin match type_of_expression option_value with
+      | Optional _ ->
+        let cond_value = compile sp option_value in
+        let some_block = [] in  (* top of stack contains the unpacked value *)
+        let none_block = compile sp default_value in
+        compile_branch cond_value some_block none_block
+      | t -> unsupported_function "default-to" t
+      end
+
+    | Div [a; b] ->
+      let a = compile sp a in
+      let b = compile sp b in
+      EVM.div a b  (* TODO: handle division by zero *)
+
+    | Err x -> compile sp x @ [EVM.zero]
+
+    | Ge (a, b) ->
+      let a = compile sp a in
+      let b = compile sp b in
+      EVM.ge a b  (* TODO: signed vs unsigned *)
+
+    | Gt (a, b) ->
+      let a = compile sp a in
+      let b = compile sp b in
+      EVM.gt a b  (* TODO: signed vs unsigned *)
+
+    | Identifier id -> (* _dump_context env; *)
+      begin match List.find_opt (fun (name, _) -> name = id) env.local_vars with
+      | None -> failwith (Printf.sprintf "unbound variable: %s" id)
+      | Some (_, local_var_index) ->
+        let stack_slot = (List.length env.local_vars) - local_var_index in
+        EVM.dup stack_slot
+      end
+
+    | If (cond_expr, then_branch, else_branch) ->
+      begin match type_of_expression cond_expr with
+      | Bool ->
+        let cond_value = compile sp cond_expr in
+        let then_block = compile sp then_branch in
+        let else_block = compile sp else_branch in
+        compile_branch cond_value then_block else_block
+      | t -> unsupported_function "if" t
+      end
+
+    | IsEq [a; b] ->
+      begin match type_of_expression a, type_of_expression b with
+      | a_type, b_type when a_type = b_type ->
+        let a = compile sp a in
+        let b = compile sp b in
+        EVM.eq a b
+      | a_type, b_type -> unsupported_function2 "is-eq" a_type b_type
+      end
+
+    | IsErr x ->
+      begin match type_of_expression x with
+      | Response _ -> compile sp x |> EVM.iszero
+      | t -> unsupported_function "is-err" t
+      end
+
+    | IsNone x ->
+      begin match type_of_expression x with
+      | Optional _ -> compile sp x |> EVM.iszero
+      | t -> unsupported_function "is-none" t
+      end
+
+    | IsOk x ->
+      begin match type_of_expression x with
+      | Response _ -> compile sp x @ [EVM.ISZERO; EVM.ISZERO]
+      | t -> unsupported_function "is-ok" t
+      end
+
+    | IsSome x ->
+      begin match type_of_expression x with
+      | Optional _ -> compile sp x @ [EVM.ISZERO; EVM.ISZERO]
+      | t -> unsupported_function "is-some" t
+      end
+
+    | Le (a, b) ->
+      let a = compile sp a in
+      let b = compile sp b in
+      EVM.le a b  (* TODO: signed vs unsigned *)
+
+    | Len x ->
+      begin match type_of_expression x with
+      | String (n, _) | Buff n | List (n, _) -> [EVM.from_int n]
+      | t -> unsupported_function "len" t
+      end
+
+    | Let (bindings, body) ->
+      let local_var_count = List.length env.local_vars in
+      let compile_binding_index index (name, _) = (name, local_var_count + index) in
+      let compile_binding_expr (_, expr) = compile sp expr in
+      let env = extend_context env (List.mapi compile_binding_index bindings) in
+      let last_body_index = (List.length body) - 1 in
+      let compile_body_expr index expr =
+        compile_expression env expr @
+          if index < last_body_index then EVM.pop1 else []
+      in
+      List.map compile_binding_expr bindings @
+        List.mapi compile_body_expr body |> List.concat
+
+    | ListExpression xs ->
+      List.concat_map (compile sp) xs @ [EVM.from_int (List.length xs)]
+
+    | Lt (a, b) ->
+      let a = compile sp a in
+      let b = compile sp b in
+      EVM.lt a b  (* TODO: signed vs unsigned *)
+
+    | Match (input_expr, (_, some_branch), (_, none_branch)) ->
+      let input_value = compile sp input_expr in
+      let some_block = compile sp some_branch in
+      let none_block = compile sp none_branch in
+      input_value @ compile_branch [EVM.ISZERO] (EVM.pop @ none_block) some_block
+
+    | Mod (a, b) ->
+      let a = compile sp a in
+      let b = compile sp b in
+      EVM.mod' a b  (* TODO: handle division by zero *)
+
+    | Mul [a; b] ->
+      let a = compile sp a in
+      let b = compile sp b in
+      EVM.mul a b  (* TODO: handle overflow *)
+
+    | Not x ->
+      let x = compile sp x in
+      EVM.iszero x
+
+    | Ok x -> compile sp x @ [EVM.one]
+
+    | Or [a; b] ->
+      let a = compile sp a in
+      let b = compile sp b in
+      EVM.or' a b
+
+    | Pow (a, b) ->
+      let a = compile sp a in
+      let b = compile sp b in
+      EVM.exp a b  (* TODO: handle overflow *)
+
+    | SomeExpression x -> compile sp x @ [EVM.one]
+
+    | Sub [a; b] ->
+      let a = compile sp a in
+      let b = compile sp b in
+      EVM.sub a b  (* TODO: handle underflow *)
+
+    | Try input ->
+      begin match type_of_expression input with
+      | Optional _ ->
+        let cond_value = compile sp input in
+        let none_block = EVM.mstore_int 0 0 @ EVM.return1 in
+        compile_branch cond_value [] none_block
+      | Response _ ->
+        let cond_value = compile sp input in
+        let err_block = EVM.mstore_int 0 0 @ EVM.mstore 1 [] @ EVM.return2 in
+        compile_branch cond_value [] err_block
+      | t -> unsupported_function "try!" t
+      end
+
+    | UnwrapErr (input, thrown_value) ->
+      begin match type_of_expression input with
+      | Response _ ->
+        let cond_value = compile sp input in
+        let ok_block = EVM.pop1 @ compile sp thrown_value @ EVM.mstore 0 [] @ EVM.return1 in
+        compile_branch cond_value ok_block []
+      | t -> unsupported_function "unwrap-err!" t
+      end
+
+    | UnwrapErrPanic input ->
+      begin match type_of_expression input with
+      | Response _ ->
+        let cond_value = compile sp input in
+        let ok_block = EVM.pop1 @ EVM.revert0 in
+        compile_branch cond_value ok_block []
+      | t -> unsupported_function "unwrap-err-panic" t
+      end
+
+    | Unwrap (input, thrown_value) ->
+      begin match type_of_expression input with
+      | Optional _ ->
+        let cond_value = compile sp input in
+        let none_block = compile sp thrown_value @ EVM.mstore 0 [] @ EVM.return1 in
+        compile_branch cond_value [] none_block
+      | Response _ ->
+        let cond_value = compile sp input in
+        let err_block = EVM.pop1 @ compile sp thrown_value @ EVM.mstore 0 [] @ EVM.return1 in
+        compile_branch cond_value [] err_block
+      | t -> unsupported_function "unwrap!" t
+      end
+
+    | UnwrapPanic input ->
+      begin match type_of_expression input with
+      | Optional _ ->
+        let cond_value = compile sp input in
+        let none_block = EVM.revert0 in
+        compile_branch cond_value [] none_block
+      | Response _ ->
+        let cond_value = compile sp input in
+        let err_block = EVM.pop1 @ EVM.revert0 in
+        compile_branch cond_value [] err_block
+      | t -> unsupported_function "unwrap-panic" t
+      end
+
+    | VarGet var ->
+      let var_slot = lookup_variable_slot env var in
+      EVM.sload var_slot
+
+    | VarSet (var, val') ->
+      let var_slot = lookup_variable_slot env var in
+      let val' = compile sp val' in
+      EVM.sstore var_slot val'
+
+    | Xor (a, b) ->
+      let a = compile sp a in
+      let b = compile sp b in
+      EVM.xor a b
+
+    | Keyword "block-height" -> EVM.number
+    | Keyword "burn-block-height" -> EVM.number
+    | Keyword "contract-caller" -> EVM.caller
+    | Keyword "is-in-regtest" -> compile_literal (BoolLiteral false)
+    | Keyword "stx-liquid-supply" -> unsupported "stx-liquid-supply"
+    | Keyword "tx-sender" -> EVM.origin
+
+    | FunctionCall ("append", [list; element]) ->
+      begin match type_of_expression list, type_of_expression element with
+      | List (n, e1), e2 when e1 = e2 ->
+        let list = compile sp list in
+        let element = compile sp element in
+        list @ EVM.pop1 @ element @ [EVM.from_int (n + 1)]
+      | t, e -> unsupported_function2 "append" t e
+      end
+
+    | FunctionCall ("asserts!", [bool_expr; _]) ->  (* TODO: thrown_value *)
+      begin match type_of_expression bool_expr with
+      | Bool ->
+        let cond_value = compile sp bool_expr in
+        let then_block = [EVM.one] in
+        let else_block = EVM.revert0 in
+        compile_branch cond_value then_block else_block
+      | t -> unsupported_function "asserts!" t
+      end
+
+    | FunctionCall ("concat", [list1; list2]) ->
+      begin match type_of_expression list1, type_of_expression list2 with
+      | List (n1, e1), List (n2, e2) when e1 = e2 ->
+        let list1 = compile sp list1 in
+        let list2 = compile sp list2 in
+        list1 @ EVM.pop1 @ list2 @ EVM.pop1 @ [EVM.from_int (n1 + n2)]
+      | t1, t2 -> unsupported_function2 "concat" t1 t2
+      end
+
+    | FunctionCall ("get", [Identifier _; Identifier _]) ->  (* TODO *)
+      [
+        EVM.from_int 0x80;                 (* 128 bits *)
+        EVM.two; EVM.EXP; EVM.MUL;         (* equivalent to EVM.SHL *)
+        EVM.from_int 0x80;                 (* 128 bits *)
+        EVM.two; EVM.EXP; EVM.SWAP 1; EVM.DIV;  (* equivalent to EVM.SWAP 1; EVM.SHR *)
+      ]
+
+    | FunctionCall ("hash160", [value]) ->
+      begin match type_of_expression value with
+      | Clarity.Buff _ | Int | Uint ->
+        let input_size = size_of_expression value in
+        let input_mstore = compile_mstore_of_expression env value in
+        input_mstore @ EVM.staticcall_hash160 (0, input_size) 0 @ EVM.pop
+      | t -> unsupported_function "hash160" t
+      end
+
+    | FunctionCall ("keccak256", [value]) ->
+      begin match type_of_expression value with
+      | Clarity.Buff _ | Int | Uint ->
+        let input_size = size_of_expression value in
+        let value = compile sp value in
+        EVM.mstore 0 value @ EVM.sha3 (0, input_size)
+      | t -> unsupported_function "keccak256" t
     end
 
-  | Div [a; b] ->
-    let a = compile_expression env a in
-    let b = compile_expression env b in
-    EVM.div a b  (* TODO: handle division by zero *)
+    | FunctionCall ("map-set", [Identifier var; key; value]) ->  (* TODO *)
+      let _ = lookup_variable_slot env var in
+      let key = compile sp key in
+      let value = compile sp value in
+      value @ key @ [EVM.SSTORE]
 
-  | Err x -> compile_expression env x @ [EVM.zero]
+    | FunctionCall ("map-get?", [Identifier var; TupleExpression [("key", _key)]]) ->  (* TODO *)
+      let _ = lookup_variable_slot env var in
+      let key = EVM.caller in  (* TODO *)
+      key @ [EVM.SLOAD; EVM.DUP 1; EVM.ISZERO; EVM.NOT]
 
-  | Ge (a, b) ->
-    let a = compile_expression env a in
-    let b = compile_expression env b in
-    EVM.ge a b  (* TODO: signed vs unsigned *)
+    | FunctionCall ("print", [expr]) ->
+      begin match expr with
+      | Literal value -> compile_static_print_call value
+      | _ -> unimplemented "print for non-literals"  (* TODO *)
+      end
 
-  | Gt (a, b) ->
-    let a = compile_expression env a in
-    let b = compile_expression env b in
-    EVM.gt a b  (* TODO: signed vs unsigned *)
-
-  | Identifier id -> (* _dump_context env; *)
-    begin match List.find_opt (fun (name, _) -> name = id) env.local_vars with
-    | None -> failwith (Printf.sprintf "unbound variable: %s" id)
-    | Some (_, local_var_index) ->
-      let stack_slot = (List.length env.local_vars) - local_var_index in
-      EVM.dup stack_slot
+    | FunctionCall ("sha256", [value]) ->
+      begin match type_of_expression value with
+      | Clarity.Buff _ | Int | Uint ->
+        let input_size = size_of_expression value in
+        let input_mstore = compile_mstore_of_expression env value in
+        input_mstore @ EVM.staticcall_sha256 (0, input_size) 0 @ EVM.pop
+      | t -> unsupported_function "sha256" t
     end
 
-  | If (cond_expr, then_branch, else_branch) ->
-    begin match type_of_expression cond_expr with
-    | Bool ->
-      let cond_value = compile_expression env cond_expr in
-      let then_block = compile_expression env then_branch in
-      let else_block = compile_expression env else_branch in
-      compile_branch cond_value then_block else_block
-    | t -> unsupported_function "if" t
-    end
+    | FunctionCall ("sha512", [value]) ->
+      begin match type_of_expression value with
+      | t -> unimplemented_function "sha512" t  (* TODO *)
+      end
 
-  | IsEq [a; b] ->
-    begin match type_of_expression a, type_of_expression b with
-    | a_type, b_type when a_type = b_type ->
-      let a = compile_expression env a in
-      let b = compile_expression env b in
-      EVM.eq a b
-    | a_type, b_type -> unsupported_function2 "is-eq" a_type b_type
-    end
+    | FunctionCall ("sha512/256", [value]) ->
+      begin match type_of_expression value with
+      | t -> unimplemented_function "sha512/256" t  (* TODO *)
+      end
 
-  | IsErr x ->
-    begin match type_of_expression x with
-    | Response _ -> compile_expression env x |> EVM.iszero
-    | t -> unsupported_function "is-err" t
-    end
+    | FunctionCall (name, _args) ->
+      let block_id = lookup_function_block env name in
+      let call_sequence =
+        (* TODO: push function call arguments *)
+        EVM.jump block_id
+      in
+      let call_length = EVM.opcodes_size call_sequence in
+      (compile_relative_offset call_length) @ call_sequence @ EVM.jumpdest
 
-  | IsNone x ->
-    begin match type_of_expression x with
-    | Optional _ -> compile_expression env x |> EVM.iszero
-    | t -> unsupported_function "is-none" t
-    end
-
-  | IsOk x ->
-    begin match type_of_expression x with
-    | Response _ -> compile_expression env x @ [EVM.ISZERO; EVM.ISZERO]
-    | t -> unsupported_function "is-ok" t
-    end
-
-  | IsSome x ->
-    begin match type_of_expression x with
-    | Optional _ -> compile_expression env x @ [EVM.ISZERO; EVM.ISZERO]
-    | t -> unsupported_function "is-some" t
-    end
-
-  | Le (a, b) ->
-    let a = compile_expression env a in
-    let b = compile_expression env b in
-    EVM.le a b  (* TODO: signed vs unsigned *)
-
-  | Len x ->
-    begin match type_of_expression x with
-    | String (n, _) | Buff n | List (n, _) -> [EVM.from_int n]
-    | t -> unsupported_function "len" t
-    end
-
-  | Let (bindings, body) ->
-    let local_var_count = List.length env.local_vars in
-    let compile_binding_index index (name, _) = (name, local_var_count + index) in
-    let compile_binding_expr (_, expr) = compile_expression env expr in
-    let env = extend_context env (List.mapi compile_binding_index bindings) in
-    let last_body_index = (List.length body) - 1 in
-    let compile_body_expr index expr =
-      compile_expression env expr @
-        if index < last_body_index then EVM.pop1 else []
-    in
-    List.map compile_binding_expr bindings @
-      List.mapi compile_body_expr body |> List.concat
-
-  | ListExpression xs ->
-    List.concat_map (compile_expression env) xs @ [EVM.from_int (List.length xs)]
-
-  | Lt (a, b) ->
-    let a = compile_expression env a in
-    let b = compile_expression env b in
-    EVM.lt a b  (* TODO: signed vs unsigned *)
-
-  | Match (input_expr, (_, some_branch), (_, none_branch)) ->
-    let input_value = compile_expression env input_expr in
-    let some_block = compile_expression env some_branch in
-    let none_block = compile_expression env none_branch in
-    input_value @ compile_branch [EVM.ISZERO] (EVM.pop @ none_block) some_block
-
-  | Mod (a, b) ->
-    let a = compile_expression env a in
-    let b = compile_expression env b in
-    EVM.mod' a b  (* TODO: handle division by zero *)
-
-  | Mul [a; b] ->
-    let a = compile_expression env a in
-    let b = compile_expression env b in
-    EVM.mul a b  (* TODO: handle overflow *)
-
-  | Not x ->
-    let x = compile_expression env x in
-    EVM.iszero x
-
-  | Ok x -> compile_expression env x @ [EVM.one]
-
-  | Or [a; b] ->
-    let a = compile_expression env a in
-    let b = compile_expression env b in
-    EVM.or' a b
-
-  | Pow (a, b) ->
-    let a = compile_expression env a in
-    let b = compile_expression env b in
-    EVM.exp a b  (* TODO: handle overflow *)
-
-  | SomeExpression x -> compile_expression env x @ [EVM.one]
-
-  | Sub [a; b] ->
-    let a = compile_expression env a in
-    let b = compile_expression env b in
-    EVM.sub a b  (* TODO: handle underflow *)
-
-  | Try input ->
-    begin match type_of_expression input with
-    | Optional _ ->
-      let cond_value = compile_expression env input in
-      let none_block = EVM.mstore_int 0 0 @ EVM.return1 in
-      compile_branch cond_value [] none_block
-    | Response _ ->
-      let cond_value = compile_expression env input in
-      let err_block = EVM.mstore_int 0 0 @ EVM.mstore 1 [] @ EVM.return2 in
-      compile_branch cond_value [] err_block
-    | t -> unsupported_function "try!" t
-    end
-
-  | UnwrapErr (input, thrown_value) ->
-    begin match type_of_expression input with
-    | Response _ ->
-      let cond_value = compile_expression env input in
-      let ok_block = EVM.pop1 @ compile_expression env thrown_value @ EVM.mstore 0 [] @ EVM.return1 in
-      compile_branch cond_value ok_block []
-    | t -> unsupported_function "unwrap-err!" t
-    end
-
-  | UnwrapErrPanic input ->
-    begin match type_of_expression input with
-    | Response _ ->
-      let cond_value = compile_expression env input in
-      let ok_block = EVM.pop1 @ EVM.revert0 in
-      compile_branch cond_value ok_block []
-    | t -> unsupported_function "unwrap-err-panic" t
-    end
-
-  | Unwrap (input, thrown_value) ->
-    begin match type_of_expression input with
-    | Optional _ ->
-      let cond_value = compile_expression env input in
-      let none_block = compile_expression env thrown_value @ EVM.mstore 0 [] @ EVM.return1 in
-      compile_branch cond_value [] none_block
-    | Response _ ->
-      let cond_value = compile_expression env input in
-      let err_block = EVM.pop1 @ compile_expression env thrown_value @ EVM.mstore 0 [] @ EVM.return1 in
-      compile_branch cond_value [] err_block
-    | t -> unsupported_function "unwrap!" t
-    end
-
-  | UnwrapPanic input ->
-    begin match type_of_expression input with
-    | Optional _ ->
-      let cond_value = compile_expression env input in
-      let none_block = EVM.revert0 in
-      compile_branch cond_value [] none_block
-    | Response _ ->
-      let cond_value = compile_expression env input in
-      let err_block = EVM.pop1 @ EVM.revert0 in
-      compile_branch cond_value [] err_block
-    | t -> unsupported_function "unwrap-panic" t
-    end
-
-  | VarGet var ->
-    let var_slot = lookup_variable_slot env var in
-    EVM.sload var_slot
-
-  | VarSet (var, val') ->
-    let var_slot = lookup_variable_slot env var in
-    let val' = compile_expression env val' in
-    EVM.sstore var_slot val'
-
-  | Xor (a, b) ->
-    let a = compile_expression env a in
-    let b = compile_expression env b in
-    EVM.xor a b
-
-  | Keyword "block-height" -> EVM.number
-  | Keyword "burn-block-height" -> EVM.number
-  | Keyword "contract-caller" -> EVM.caller
-  | Keyword "is-in-regtest" -> compile_literal (BoolLiteral false)
-  | Keyword "stx-liquid-supply" -> unsupported "stx-liquid-supply"
-  | Keyword "tx-sender" -> EVM.origin
-
-  | FunctionCall ("append", [list; element]) ->
-    begin match type_of_expression list, type_of_expression element with
-    | List (n, e1), e2 when e1 = e2 ->
-      let list = compile_expression env list in
-      let element = compile_expression env element in
-      list @ EVM.pop1 @ element @ [EVM.from_int (n + 1)]
-    | t, e -> unsupported_function2 "append" t e
-    end
-
-  | FunctionCall ("asserts!", [bool_expr; _]) ->  (* TODO: thrown_value *)
-    begin match type_of_expression bool_expr with
-    | Bool ->
-      let cond_value = compile_expression env bool_expr in
-      let then_block = [EVM.one] in
-      let else_block = EVM.revert0 in
-      compile_branch cond_value then_block else_block
-    | t -> unsupported_function "asserts!" t
-    end
-
-  | FunctionCall ("concat", [list1; list2]) ->
-    begin match type_of_expression list1, type_of_expression list2 with
-    | List (n1, e1), List (n2, e2) when e1 = e2 ->
-      let list1 = compile_expression env list1 in
-      let list2 = compile_expression env list2 in
-      list1 @ EVM.pop1 @ list2 @ EVM.pop1 @ [EVM.from_int (n1 + n2)]
-    | t1, t2 -> unsupported_function2 "concat" t1 t2
-    end
-
-  | FunctionCall ("get", [Identifier _; Identifier _]) ->  (* TODO *)
-    [
-      EVM.from_int 0x80;                 (* 128 bits *)
-      EVM.two; EVM.EXP; EVM.MUL;         (* equivalent to EVM.SHL *)
-      EVM.from_int 0x80;                 (* 128 bits *)
-      EVM.two; EVM.EXP; EVM.SWAP 1; EVM.DIV;  (* equivalent to EVM.SWAP 1; EVM.SHR *)
-    ]
-
-  | FunctionCall ("hash160", [value]) ->
-    begin match type_of_expression value with
-    | Clarity.Buff _ | Int | Uint ->
-      let input_size = size_of_expression value in
-      let input_mstore = compile_mstore_of_expression env value in
-      input_mstore @ EVM.staticcall_hash160 (0, input_size) 0 @ EVM.pop
-    | t -> unsupported_function "hash160" t
-    end
-
-  | FunctionCall ("keccak256", [value]) ->
-    begin match type_of_expression value with
-    | Clarity.Buff _ | Int | Uint ->
-      let input_size = size_of_expression value in
-      let value = compile_expression env value in
-      EVM.mstore 0 value @ EVM.sha3 (0, input_size)
-    | t -> unsupported_function "keccak256" t
-  end
-
-  | FunctionCall ("map-set", [Identifier var; key; value]) ->  (* TODO *)
-    let _ = lookup_variable_slot env var in
-    let key = compile_expression env key in
-    let value = compile_expression env value in
-    value @ key @ [EVM.SSTORE]
-
-  | FunctionCall ("map-get?", [Identifier var; TupleExpression [("key", _key)]]) ->  (* TODO *)
-    let _ = lookup_variable_slot env var in
-    let key = EVM.caller in  (* TODO *)
-    key @ [EVM.SLOAD; EVM.DUP 1; EVM.ISZERO; EVM.NOT]
-
-  | FunctionCall ("print", [expr]) ->
-    begin match expr with
-    | Literal value -> compile_static_print_call value
-    | _ -> unimplemented "print for non-literals"  (* TODO *)
-    end
-
-  | FunctionCall ("sha256", [value]) ->
-    begin match type_of_expression value with
-    | Clarity.Buff _ | Int | Uint ->
-      let input_size = size_of_expression value in
-      let input_mstore = compile_mstore_of_expression env value in
-      input_mstore @ EVM.staticcall_sha256 (0, input_size) 0 @ EVM.pop
-    | t -> unsupported_function "sha256" t
-  end
-
-  | FunctionCall ("sha512", [value]) ->
-    begin match type_of_expression value with
-    | t -> unimplemented_function "sha512" t  (* TODO *)
-    end
-
-  | FunctionCall ("sha512/256", [value]) ->
-    begin match type_of_expression value with
-    | t -> unimplemented_function "sha512/256" t  (* TODO *)
-    end
-
-  | FunctionCall (name, _args) ->
-    let block_id = lookup_function_block env name in
-    let call_sequence =
-      (* TODO: push function call arguments *)
-      EVM.jump block_id
-    in
-    let call_length = EVM.opcodes_size call_sequence in
-    (compile_relative_offset call_length) @ call_sequence @ EVM.jumpdest
-
-  | _ -> unimplemented "arbitrary expressions"  (* TODO *)
+    | _ -> unimplemented "arbitrary expressions"  (* TODO *)
+  in
+  compile 0 expr
 
 and compile_static_print_call value =
   (* See: https://hardhat.org/hardhat-network/#console-log *)
