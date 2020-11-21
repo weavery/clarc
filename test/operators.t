@@ -67,6 +67,60 @@ let:
          
   [125]
 
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (let ((x 7)) (+ x 9)))
+  > EOF
+  PUSH1 0x07 PUSH1 0x09 DUP2 ADD PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN
+  STOP
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (let ((x 7)) (+ 9 x)))
+  > EOF
+  PUSH1 0x07 DUP1 PUSH1 0x09 ADD PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00 RETURN
+  STOP
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (let ((x 7) (y 9)) (+ x y)))
+  > EOF
+  PUSH1 0x07 PUSH1 0x09 DUP1 DUP3 ADD PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00
+  RETURN STOP
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (let ((x 7) (y 9)) (+ y x)))
+  > EOF
+  PUSH1 0x07 PUSH1 0x09 DUP2 DUP2 ADD PUSH1 0x00 MSTORE PUSH1 0x20 PUSH1 0x00
+  RETURN STOP
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (let ((x 7) (y 9)) (* (+ block-height x) y)))
+  > EOF
+  PUSH1 0x07 PUSH1 0x09 DUP1 DUP3 NUMBER ADD MUL PUSH1 0x00 MSTORE PUSH1 0x20
+  PUSH1 0x00 RETURN STOP
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (let ((x 7) (y 9)) (* (+ x block-height) y)))
+  > EOF
+  PUSH1 0x07 PUSH1 0x09 DUP1 NUMBER DUP4 ADD MUL PUSH1 0x00 MSTORE PUSH1 0x20
+  PUSH1 0x00 RETURN STOP
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (let ((x 7) (y 9)) (* (+ x y) (- x y))))
+  > EOF
+  PUSH1 0x07 PUSH1 0x09 DUP1 DUP3 SUB DUP2 DUP4 ADD MUL PUSH1 0x00 MSTORE
+  PUSH1 0x20 PUSH1 0x00 RETURN STOP
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (let ((x 7) (y 9)) (list x y)))
+  > EOF
+  PUSH1 0x07 PUSH1 0x09 DUP2 DUP2 PUSH1 0x02 PUSH1 0x00 MSTORE PUSH1 0x20
+  PUSH1 0x00 RETURN STOP
+
+  $ clarc -t opcode -f only-function=test <<EOF
+  > (define-read-only (test) (let ((x 7) (y 9)) (list x y x)))
+  > EOF
+  PUSH1 0x07 PUSH1 0x09 DUP2 DUP2 DUP4 PUSH1 0x03 PUSH1 0x00 MSTORE PUSH1 0x20
+  PUSH1 0x00 RETURN STOP
+
 match:
 
   $ clarc -t opcode -f only-function=test <<EOF

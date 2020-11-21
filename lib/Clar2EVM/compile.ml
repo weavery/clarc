@@ -179,20 +179,20 @@ and compile_private_function _features env index (_, _, body) =
   in
   (1 + index, prelude @ body @ postlude)
 
-and compile_expression env expr =
+and compile_expression ?(sp=0) env expr =
   let rec compile sp = function
     | Clarity.Literal lit -> compile_literal lit
     | TupleExpression [("key", key)] -> compile sp key
     | TupleExpression _ -> unimplemented "arbitrary tuple expressions"  (* TODO *)
 
     | Add [a; b] ->
-      let a = compile sp a in
-      let b = compile sp b in
+      let a = compile (sp + 1) a in
+      let b = compile (sp + 0) b in
       EVM.add a b  (* TODO: handle overflow *)
 
     | And [a; b] ->
-      let a = compile sp a in
-      let b = compile sp b in
+      let a = compile (sp + 1) a in
+      let b = compile (sp + 0) b in
       EVM.and' a b
 
     | DefaultTo (default_value, option_value) ->
@@ -206,27 +206,27 @@ and compile_expression env expr =
       end
 
     | Div [a; b] ->
-      let a = compile sp a in
-      let b = compile sp b in
+      let a = compile (sp + 1) a in
+      let b = compile (sp + 0) b in
       EVM.div a b  (* TODO: handle division by zero *)
 
     | Err x -> compile sp x @ [EVM.zero]
 
     | Ge (a, b) ->
-      let a = compile sp a in
-      let b = compile sp b in
+      let a = compile (sp + 1) a in
+      let b = compile (sp + 0) b in
       EVM.ge a b  (* TODO: signed vs unsigned *)
 
     | Gt (a, b) ->
-      let a = compile sp a in
-      let b = compile sp b in
+      let a = compile (sp + 1) a in
+      let b = compile (sp + 0) b in
       EVM.gt a b  (* TODO: signed vs unsigned *)
 
     | Identifier id -> (* _dump_context env; *)
       begin match List.find_opt (fun (name, _) -> name = id) env.local_vars with
       | None -> failwith (Printf.sprintf "unbound variable: %s" id)
       | Some (_, local_var_index) ->
-        let stack_slot = (List.length env.local_vars) - local_var_index in
+        let stack_slot = (List.length env.local_vars) - local_var_index + sp in
         EVM.dup stack_slot
       end
 
@@ -243,8 +243,8 @@ and compile_expression env expr =
     | IsEq [a; b] ->
       begin match type_of_expression a, type_of_expression b with
       | a_type, b_type when a_type = b_type ->
-        let a = compile sp a in
-        let b = compile sp b in
+        let a = compile (sp + 1) a in
+        let b = compile (sp + 0) b in
         EVM.eq a b
       | a_type, b_type -> unsupported_function2 "is-eq" a_type b_type
       end
@@ -274,8 +274,8 @@ and compile_expression env expr =
       end
 
     | Le (a, b) ->
-      let a = compile sp a in
-      let b = compile sp b in
+      let a = compile (sp + 1) a in
+      let b = compile (sp + 0) b in
       EVM.le a b  (* TODO: signed vs unsigned *)
 
     | Len x ->
@@ -291,18 +291,18 @@ and compile_expression env expr =
       let env = extend_context env (List.mapi compile_binding_index bindings) in
       let last_body_index = (List.length body) - 1 in
       let compile_body_expr index expr =
-        compile_expression env expr @
+        compile_expression ~sp env expr @
           if index < last_body_index then EVM.pop1 else []
       in
       List.map compile_binding_expr bindings @
         List.mapi compile_body_expr body |> List.concat
 
     | ListExpression xs ->
-      List.concat_map (compile sp) xs @ [EVM.from_int (List.length xs)]
+      List.concat (List.mapi (fun i x -> compile (sp + i) x) xs) @ [EVM.from_int (List.length xs)]
 
     | Lt (a, b) ->
-      let a = compile sp a in
-      let b = compile sp b in
+      let a = compile (sp + 1) a in
+      let b = compile (sp + 0) b in
       EVM.lt a b  (* TODO: signed vs unsigned *)
 
     | Match (input_expr, (_, some_branch), (_, none_branch)) ->
@@ -312,13 +312,13 @@ and compile_expression env expr =
       input_value @ compile_branch [EVM.ISZERO] (EVM.pop @ none_block) some_block
 
     | Mod (a, b) ->
-      let a = compile sp a in
-      let b = compile sp b in
+      let a = compile (sp + 1) a in
+      let b = compile (sp + 0) b in
       EVM.mod' a b  (* TODO: handle division by zero *)
 
     | Mul [a; b] ->
-      let a = compile sp a in
-      let b = compile sp b in
+      let a = compile (sp + 1) a in
+      let b = compile (sp + 0) b in
       EVM.mul a b  (* TODO: handle overflow *)
 
     | Not x ->
@@ -328,20 +328,20 @@ and compile_expression env expr =
     | Ok x -> compile sp x @ [EVM.one]
 
     | Or [a; b] ->
-      let a = compile sp a in
-      let b = compile sp b in
+      let a = compile (sp + 1) a in
+      let b = compile (sp + 0) b in
       EVM.or' a b
 
     | Pow (a, b) ->
-      let a = compile sp a in
-      let b = compile sp b in
+      let a = compile (sp + 1) a in
+      let b = compile (sp + 0) b in
       EVM.exp a b  (* TODO: handle overflow *)
 
     | SomeExpression x -> compile sp x @ [EVM.one]
 
     | Sub [a; b] ->
-      let a = compile sp a in
-      let b = compile sp b in
+      let a = compile (sp + 1) a in
+      let b = compile (sp + 0) b in
       EVM.sub a b  (* TODO: handle underflow *)
 
     | Try input ->
@@ -411,8 +411,8 @@ and compile_expression env expr =
       EVM.sstore var_slot val'
 
     | Xor (a, b) ->
-      let a = compile sp a in
-      let b = compile sp b in
+      let a = compile (sp + 1) a in
+      let b = compile (sp + 0) b in
       EVM.xor a b
 
     | Keyword "block-height" -> EVM.number
@@ -523,7 +523,7 @@ and compile_expression env expr =
 
     | _ -> unimplemented "arbitrary expressions"  (* TODO *)
   in
-  compile 0 expr
+  compile sp expr
 
 and compile_static_print_call value =
   (* See: https://hardhat.org/hardhat-network/#console-log *)
