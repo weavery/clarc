@@ -1,5 +1,5 @@
 (lang dune 2.7)
 (name clarc)
-(version 0.5.0)
+(version 0.6.0)
 (using menhir 2.0)
 (cram enable)

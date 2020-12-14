@@ -2,7 +2,7 @@
 
 open Cmdliner
 
-let version = "0.5.0"  (* TODO: preprocess from VERSION *)
+let version = "0.6.0"  (* TODO: preprocess from VERSION *)
 
 exception Error of int * string * string
 
